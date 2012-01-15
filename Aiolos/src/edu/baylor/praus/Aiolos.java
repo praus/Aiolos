@@ -13,13 +13,14 @@ import java.util.logging.SimpleFormatter;
 
 public class Aiolos {
     
-    public static final int listenPort = 8080;
-    public static final String logFile = "server.log";
-    public static final Level logLevel = Level.FINEST;
-    public static final int threadPoolSize = 50;
+    public static int listenPort = 8080;
+    public static String logFile = "server.log";
+    public static Level logLevel = Level.FINEST;
+    public static int threadPoolSize = 50;
     
     public static void main(String[] args) {
         Logger log = configureLogger();
+        parseArgs(args);
 
         try {
             final AsynchronousChannelGroup acg =
@@ -48,7 +49,7 @@ public class Aiolos {
     }
     
     
-    public static Logger configureLogger() {
+    private static Logger configureLogger() {
         Logger log = Logger.getLogger("aiolos.network");
         FileHandler fh;
 
@@ -63,5 +64,11 @@ public class Aiolos {
           e.printStackTrace();
         }
         return log;
+    }
+    
+    private static void parseArgs(String[] args) {
+        if (args.length >= 1) {
+            Aiolos.listenPort = Integer.parseInt(args[0]);
+        }
     }
 }

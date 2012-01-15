@@ -2,6 +2,7 @@ package edu.baylor.praus;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,11 +13,82 @@ import java.util.regex.Pattern;
 
 public class RequestHandler implements CompletionHandler<Integer, ClientSession> {
 
-    private static final int BUFF_SIZE = 256;
+    private static final int BUFF_SIZE = 512;
     private Logger log;
     private ClientSession attachment;
+    private boolean shouldClose = false;
+    
+    @Override
+    public void completed(Integer result, ClientSession att) {
+        attachment = att;
+        log = attachment.getLogger();
+        shouldClose = false;
+        
+        if (result == -1) {
+            try {
+                log.info("Client " + attachment.getChannel().getRemoteAddress() + "  disconnected abruptly.");
+                attachment.getChannel().close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            return;
+        }
+
+        ByteBuffer readBuff = attachment.getBuffer();
+        ByteBuffer responseBuff = ByteBuffer.allocate(BUFF_SIZE);
+        
+        if (attachment.isConnected()) {
+            WebSocketFrame frame = WebSocketFrame.decode(readBuff);
+            System.out.println(new String(frame.getData().array()));
+            readBuff.flip();
             
-    private WebSocketRequest parseRequest(String plainRequest)
+            ByteBuffer response = WebSocketFrame.encode("Ahoj svete");
+//            byte[] dst = new byte[4];
+//            response.get(dst);
+//            response.rewind();
+            responseBuff.put(response);
+            shouldClose = true;
+            
+        } else { // handshake
+            String handshakeRequest = extractByteBuffer(readBuff);
+            WebSocketHandshakeRequest wsRequest = null;
+            try {
+                wsRequest = parseHandshake(handshakeRequest);
+                String wsKey = wsRequest.getWsKey();
+                attachment.setConnected(true);
+                
+                attachment.setRequest(wsRequest);
+                
+                log.info(wsRequest.toString());
+                
+                WebSocketHandshakeResponse r = new WebSocketHandshakeResponse(wsKey);
+                responseBuff.put(r.getResponse().getBytes());
+                log.info("Response sent");
+                
+                
+            } catch (InvalidRequestException e) {
+                log.info("Invalid request");
+                closeChannel(); // disconnect misbehaving client
+                e.printStackTrace();
+            }
+        }
+        responseBuff.flip();
+        attachment.getChannel().write(responseBuff);
+        
+        if (shouldClose) {
+            closeChannel();
+            return;
+        }
+        
+        // next read from this client
+        ByteBuffer nextBuff = ByteBuffer.allocate(BUFF_SIZE);
+        attachment.setBuffer(nextBuff);
+        
+        attachment.getChannel().read(nextBuff, attachment, new RequestHandler());
+    }
+    
+    
+    private WebSocketHandshakeRequest parseHandshake(String plainRequest)
             throws InvalidRequestException {
         /**
             GET / HTTP/1.1
@@ -43,19 +115,21 @@ public class RequestHandler implements CompletionHandler<Integer, ClientSession>
             method = m.group("method");
             uri = m.group("uri");
         } else {
+            log.info(lines.toString());
             throw new InvalidMethodException();
         }
         
-        WebSocketRequest wsRequest = new WebSocketRequest(method, uri);
+        WebSocketHandshakeRequest wsRequest = new WebSocketHandshakeRequest(method, uri);
         
         for (String line: lines) {
             if (line.trim().equals("")) // skip empty lines
                 continue;
             
             String[] s = line.split(":", 2);
-            if (s.length != 2) throw new InvalidWebSocketRequestException();
-            String fieldName = s[0];
-            String fieldValue = s[1];
+            if (s.length != 2)
+                throw new InvalidWebSocketRequestException();
+            String fieldName = s[0].trim();
+            String fieldValue = s[1].trim();
             
             switch (fieldName.toLowerCase()) {
                 case "connection":
@@ -84,152 +158,17 @@ public class RequestHandler implements CompletionHandler<Integer, ClientSession>
     
     private void closeChannel() {
         try {
-            log.fine("Disconnecting client " + attachment.getChannel().getRemoteAddress());
-            attachment.getChannel().close();
+            log.info("Disconnecting client " + attachment.getChannel().getRemoteAddress());
+            AsynchronousSocketChannel channel = attachment.getChannel(); 
+            channel.close();
         } catch (IOException e) {
             log.warning(e.getMessage());
         }
     }
     
     @Override
-    public void completed(Integer result, ClientSession att) {
-        attachment = att;
-        log = attachment.getLogger();
-        
-        if (result == -1) {
-            try {
-                log.info("Client " + attachment.getChannel().getRemoteAddress() + "  disconnected abruptly.");
-                attachment.getChannel().close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-            return;
-        }
-
-        ByteBuffer readBuff = attachment.getBuffer();
-        ByteBuffer responseBuff = ByteBuffer.allocate(BUFF_SIZE);
-
-        String request = extractByteBuffer(readBuff);
-        //System.out.println("REQUEST: " + request);
-        
-        WebSocketRequest wsRequest = null;
-        try {
-            wsRequest = parseRequest(request);
-            String wsKey = wsRequest.getWsKey();
-            
-            attachment.setRequest(wsRequest);
-            
-            log.info(wsRequest.toString());
-            
-            WebSocketHandshakeResponse r = new WebSocketHandshakeResponse(wsKey);
-            responseBuff.put(r.getResponse().getBytes());
-            
-            
-        } catch (InvalidRequestException e) {
-            log.info("Invalid request");
-            closeChannel(); // disconnect misbehaving client
-            e.printStackTrace();
-        }
-        
-//        if (request.startsWith("GET")) {
-//
-//            responseBuff.put("city\r\n".getBytes());
-
-//        } else if (request.startsWith("end")) {
-//            // vypsani soucasnych vysledku klientovi
-////            if (attachment.isResults()) {
-////                responseBuff.put("vysledky:\r\n".getBytes());
-////                responseBuff.put(ClientSession.getPartyvotes().toString().getBytes());
-////            }
-//
-//            responseBuff.put("\r\nBye.\r\n".getBytes());
-//            responseBuff.flip();
-//            attachment.getChannel().write(responseBuff);
-//
-//            try {
-//                attachment.getLogger().info("Client " + attachment.getChannel().getRemoteAddress() + "  gracefully disconnected.");
-//                attachment.getChannel().close();
-//            } catch (IOException ex) {
-//                ex.printStackTrace();
-//            }
-//            return;
-//
-//        } else if (attachment.isResults() && attachment.getCity().equals("")) {
-//            Pattern p = Pattern.compile("([a-zA-Z0-9-]+)\r\n");
-//            Matcher m = p.matcher(request);
-//
-//            if (m.find()) {
-//                String city = m.group(1);
-//                attachment.setCity(city);
-//
-//                if (!ClientSession.getPartyvotes().containsKey(city)) {
-//                    ClientSession.getPartyvotes().put(city, new HashMap<String, Long>());
-//                }
-//                responseBuff.put("party:votes\r\n".getBytes());
-//            } else {
-//                responseBuff.put("ERROR: invalid city name, try again\r\n".getBytes());
-//            }
-//
-//
-//        } else if (
-//                attachment.isResults() &&
-//                !attachment.getCity().equals("") &&
-//                !request.startsWith("end"))
-//        {
-//            Pattern p = Pattern.compile("([a-zA-Z0-9 ]+)[:]([0-9]+)\r\n");
-//
-//            Matcher m = p.matcher(request);
-//
-//            if (!m.find()) {
-//                responseBuff.put("ERROR: unknown format, retry\r\n".getBytes());
-//            } else {
-//                Map<String, Long> vysledky = attachment.getPartyvotesForCity();
-//                if (vysledky == null) {
-//                    attachment.getLogger().severe(
-//                            "city not found! this shouldn't have happened, disconnecting client");
-//                    try {
-//                        attachment.getChannel().close();
-//                    } catch (IOException ex) {
-//                        ex.printStackTrace();
-//                    }
-//                }
-//
-//                String strana = m.group(1);
-//                Long hlasy = null;
-//                try {
-//                    hlasy = Long.parseLong(m.group(2));
-//                } catch (NumberFormatException ex) {
-//                    responseBuff.put("ERROR: Incorrect number format.\r\n".getBytes());
-//                    return;
-//                }
-//
-//                if (vysledky.containsKey(strana)) {
-//                    hlasy += vysledky.get(strana);
-//                }
-//                    
-//                vysledky.put(strana, hlasy);
-//                logger.info("Strana " + strana + " ve meste " + attachment.getCity() + " ma nyni " + hlasy + " hlasu.");
-//
-//                responseBuff.put("party:votes\r\n".getBytes());
-//            }
-//
-//        
-//        } else {
-//            responseBuff.put("ERROR: start with \"results\" keyword \r\n".getBytes());
-//        }
-        
-        responseBuff.flip();
-        attachment.getChannel().write(responseBuff);
-        
-        // next read from this client
-        ByteBuffer nextBuff = ByteBuffer.allocate(BUFF_SIZE);
-        attachment.setBuffer(nextBuff);
-
-        attachment.getChannel().read(nextBuff, attachment, new RequestHandler());
-    }
-
-    @Override
     public void failed(Throwable exc, ClientSession attachment) {
+        exc.printStackTrace();
         attachment.getLogger().warning(exc.getMessage());
     }
 

@@ -10,7 +10,12 @@ public class ClientSession {
     private AsynchronousServerSocketChannel serverSocketChannel;
     private ByteBuffer buffer;
     
-    private WebSocketRequest request;
+    private WebSocketHandshakeRequest handshakeRequest;
+    
+    /**
+     * Handshake has been performed successfuly, continue with frames 
+     */
+    private boolean connected;
     private Logger logger;
 
     public ClientSession(AsynchronousSocketChannel channel, ByteBuffer buffer) {
@@ -60,14 +65,21 @@ public class ClientSession {
         return serverSocketChannel;
     }
 
-    public WebSocketRequest getRequest() {
-        return request;
+    public WebSocketHandshakeRequest getRequest() {
+        return handshakeRequest;
     }
 
-    public void setRequest(WebSocketRequest request) {
-        this.request = request;
+    public void setRequest(WebSocketHandshakeRequest request) {
+        this.handshakeRequest = request;
     }
 
     
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+    }
     
 }
