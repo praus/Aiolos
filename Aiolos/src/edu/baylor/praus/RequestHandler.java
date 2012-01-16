@@ -4,12 +4,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import edu.baylor.praus.exceptions.InvalidRequestException;
 
 public class RequestHandler implements CompletionHandler<Integer, ClientSession> {
 
@@ -38,28 +35,39 @@ public class RequestHandler implements CompletionHandler<Integer, ClientSession>
         ByteBuffer responseBuff = ByteBuffer.allocate(BUFF_SIZE);
         
         if (attachment.isConnected()) {
-            WebSocketFrame frame = WebSocketFrame.decode(readBuff);
-            System.out.println(new String(frame.getData().array()));
-            readBuff.flip();
+            try {
+                WebSocketFrame wsRequest = WebSocketFrame.decode(readBuff);
             
-            ByteBuffer response = WebSocketFrame.encode("Ahoj svete");
-//            byte[] dst = new byte[4];
-//            response.get(dst);
-//            response.rewind();
-            responseBuff.put(response);
-            shouldClose = true;
+                System.out.format("REQUEST: %s\n", wsRequest);
+                //wsRequest.getData().rewind();
+                String message = new String(wsRequest.getData().array());
+                System.out.format("[%s] %s\n", message.length(), message);
+                
+                if (wsRequest.isClose()) {
+                    closeChannel();
+                    return;
+                }
+                
+                // WebSocketFrame wsResponse = new WebSocketFrame(wsRequest.getData());
+                WebSocketFrame wsResponse = WebSocketFrame.createMessage("Ahoj svete");
+                System.out.format("RESPONSE: %s\n", wsResponse);
+                
+                responseBuff.put(wsResponse.encode());
+                
+            } catch (InvalidRequestException ex) {
+                ex.printStackTrace();
+            }
             
         } else { // handshake
-            String handshakeRequest = extractByteBuffer(readBuff);
-            WebSocketHandshakeRequest wsRequest = null;
+            WebSocketHandshakeRequest wshRequest = null;
             try {
-                wsRequest = parseHandshake(handshakeRequest);
-                String wsKey = wsRequest.getWsKey();
+                wshRequest = WebSocketHandshakeRequest.decode(readBuff);
+                String wsKey = wshRequest.getWsKey();
                 attachment.setConnected(true);
                 
-                attachment.setRequest(wsRequest);
+                attachment.setRequest(wshRequest);
                 
-                log.info(wsRequest.toString());
+                log.info(wshRequest.toString());
                 
                 WebSocketHandshakeResponse r = new WebSocketHandshakeResponse(wsKey);
                 responseBuff.put(r.getResponse().getBytes());
@@ -87,75 +95,6 @@ public class RequestHandler implements CompletionHandler<Integer, ClientSession>
         attachment.getChannel().read(nextBuff, attachment, new RequestHandler());
     }
     
-    
-    private WebSocketHandshakeRequest parseHandshake(String plainRequest)
-            throws InvalidRequestException {
-        /**
-            GET / HTTP/1.1
-            Upgrade: websocket
-            Connection: Upgrade
-            Host: 66.90.194.192
-            Origin: http://websocket.org
-            Sec-WebSocket-Key: 6+m3ssD7l08m+9f5bhCaOA==
-            Sec-WebSocket-Version: 13
-         */
-        
-        final List<String> lines =
-                new ArrayList<String>(Arrays.asList(plainRequest.split("\r\n")));
-        
-        Matcher m = null;
-        
-        // Request-Line (GET / HTTP/1.1)
-        Pattern requestLinePattern = Pattern.compile(
-                "^(?<method>GET)[ ](?<uri>[/][\\w]*)[ ]HTTP/1.1$");
-        m = requestLinePattern.matcher(lines.remove(0));
-        String method = null;
-        String uri = null;
-        if (m.matches()) {
-            method = m.group("method");
-            uri = m.group("uri");
-        } else {
-            log.info(lines.toString());
-            throw new InvalidMethodException();
-        }
-        
-        WebSocketHandshakeRequest wsRequest = new WebSocketHandshakeRequest(method, uri);
-        
-        for (String line: lines) {
-            if (line.trim().equals("")) // skip empty lines
-                continue;
-            
-            String[] s = line.split(":", 2);
-            if (s.length != 2)
-                throw new InvalidWebSocketRequestException();
-            String fieldName = s[0].trim();
-            String fieldValue = s[1].trim();
-            
-            switch (fieldName.toLowerCase()) {
-                case "connection":
-                    wsRequest.setConnection(fieldValue);
-                    break;
-                case "upgrade":
-                    wsRequest.setUpgrade(fieldValue);
-                    break;
-                case "sec-websocket-key":
-                    wsRequest.setWsKey(fieldValue);
-                    break;
-                case "sec-websocket-version":
-                    wsRequest.setWsVersion(fieldValue);
-                    break;
-            }
-        }
-        
-        // Upgrade to WS connection
-        if (wsRequest.isUpgraded()) {
-            // fail, client does not support WebSocket
-            throw new ClientDoesNotSupportWebSocketException();
-        }
-        
-        return wsRequest;
-    }
-    
     private void closeChannel() {
         try {
             log.info("Disconnecting client " + attachment.getChannel().getRemoteAddress());
@@ -170,10 +109,5 @@ public class RequestHandler implements CompletionHandler<Integer, ClientSession>
     public void failed(Throwable exc, ClientSession attachment) {
         exc.printStackTrace();
         attachment.getLogger().warning(exc.getMessage());
-    }
-
-    private static String extractByteBuffer(ByteBuffer buff) {
-        buff.flip();
-        return new String(buff.array());
     }
 }
