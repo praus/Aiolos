@@ -108,7 +108,7 @@ public class WebSocketFrame {
             buf.get(maskingKey);
             for (int i = 0; i < payloadLength; i++) {
                 byte unmasked = (byte) (buf.get() ^ maskingKey[i % 4]);
-                System.out.println(unmasked);
+                //System.out.print(new Character((char) unmasked));
                 data.put(unmasked);
             }
             data.rewind();
@@ -121,8 +121,7 @@ public class WebSocketFrame {
             // fail
             // throw new UnsupportedWebSocketExtensionException();
         }
-
-        //
+        
         WebSocketFrame frame = new WebSocketFrame(fin, opcode, mask,
                 payloadLength, maskingKey, data);
         return frame;
@@ -132,13 +131,27 @@ public class WebSocketFrame {
         encoded = ByteBuffer.allocate(64 + data.limit());
         byte flags = 0b1000; // fin
         byte opcode = (byte) this.opcode.getOpCodeNumber();
+        encoded.put((byte) (opcode | (flags << 4)));
+        
         byte mask = 0;
         int payloadLen = data.limit();
         // short statusCode = 1000;
-
-        encoded.put((byte) (opcode | (flags << 4)));
-        // System.out.format("0x%x", ((byte) flags | (opcode << 4)));
-        encoded.put((byte) (mask | (payloadLen)));
+        
+        int firstLen = payloadLen; // first length field
+        byte[] extendedLen = new byte[0];
+        if (payloadLen > 65536) { // use 64 bit field for really large payloads
+            // TODO: implement
+            firstLen = 127;
+            extendedLen = new byte[8];
+        } else if (payloadLen > 125) { // 16 bit field
+            firstLen = 126;
+            extendedLen = new byte[2];
+            extendedLen[0] = (byte) ((payloadLen >> 8) & 0xFF);
+            extendedLen[1] = (byte) (payloadLen & 0xFF);
+        }
+        // System.out.format("0x%x",);
+        encoded.put((byte) ((mask << 7) | (firstLen)));
+        encoded.put(extendedLen);
         // buf.putShort(statusCode);
         encoded.put(data);
         encoded.flip();

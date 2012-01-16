@@ -10,7 +10,7 @@ import edu.baylor.praus.exceptions.InvalidRequestException;
 
 public class RequestHandler implements CompletionHandler<Integer, ClientSession> {
 
-    private static final int BUFF_SIZE = 512;
+    private static final int BUFF_SIZE = 2048;
     private Logger log;
     private ClientSession attachment;
     private boolean shouldClose = false;
@@ -48,8 +48,8 @@ public class RequestHandler implements CompletionHandler<Integer, ClientSession>
                     return;
                 }
                 
-                // WebSocketFrame wsResponse = new WebSocketFrame(wsRequest.getData());
-                WebSocketFrame wsResponse = WebSocketFrame.createMessage("Ahoj svete");
+                WebSocketFrame wsResponse = new WebSocketFrame(wsRequest.getData());
+                //WebSocketFrame wsResponse = WebSocketFrame.createMessage("Ahoj svete");
                 System.out.format("RESPONSE: %s\n", wsResponse);
                 
                 responseBuff.put(wsResponse.encode());
