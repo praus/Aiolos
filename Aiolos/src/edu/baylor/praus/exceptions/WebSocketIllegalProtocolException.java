@@ -1,6 +1,5 @@
-package edu.baylor.praus;
+package edu.baylor.praus.exceptions;
 
-import edu.baylor.praus.exceptions.InvalidRequestException;
 
 public class WebSocketIllegalProtocolException extends InvalidRequestException {
     

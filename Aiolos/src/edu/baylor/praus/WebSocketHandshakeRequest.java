@@ -14,7 +14,7 @@ import edu.baylor.praus.exceptions.InvalidMethodException;
 import edu.baylor.praus.exceptions.InvalidRequestException;
 import edu.baylor.praus.exceptions.InvalidWebSocketRequestException;
 
-public class WebSocketHandshakeRequest {
+public class WebSocketHandshakeRequest implements Decoder.DataConsumerResult {
     private String method;
     private URI uri;
     private String wsKey;
@@ -22,6 +22,8 @@ public class WebSocketHandshakeRequest {
     private String upgrade;
     private String connection;
     private String host;
+    
+    private boolean completed = false;
 
     public static WebSocketHandshakeRequest decode(ByteBuffer buf)
             throws InvalidRequestException {
@@ -101,6 +103,9 @@ public class WebSocketHandshakeRequest {
         return wsRequest;
     }
 
+    public WebSocketHandshakeRequest() {
+    }
+    
     public WebSocketHandshakeRequest(String method, String uri) {
         this.method = method;
         this.uri = URI.create(uri);
@@ -120,6 +125,10 @@ public class WebSocketHandshakeRequest {
 
     public void setUri(URI uri) {
         this.uri = uri;
+    }
+    
+    public void setUri(String uri) {
+        this.uri = URI.create(uri);
     }
 
     public String getWsKey() {
@@ -147,7 +156,7 @@ public class WebSocketHandshakeRequest {
     }
 
     public boolean isUpgraded() {
-        if (upgrade != null && upgrade.toLowerCase().equals("upgrade"))
+        if (upgrade != null && upgrade.toLowerCase().equals("websocket"))
             return true;
         return false;
     }

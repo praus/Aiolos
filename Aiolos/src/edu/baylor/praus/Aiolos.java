@@ -2,9 +2,9 @@ package edu.baylor.praus;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
-import java.util.concurrent.Executors;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,24 +16,42 @@ public class Aiolos {
     public static int listenPort = 8080;
     public static String logFile = "server.log";
     public static Level logLevel = Level.FINEST;
-    public static int threadPoolSize = 50;
     
     public static void main(String[] args) {
-        Logger log = configureLogger();
+        final Logger log = configureLogger();
         parseArgs(args);
 
         try {
-            final AsynchronousChannelGroup acg =
-                    AsynchronousChannelGroup.withThreadPool(
-                            Executors.newFixedThreadPool(threadPoolSize));
-            
             final AsynchronousServerSocketChannel listener =
-                    AsynchronousServerSocketChannel.open(acg).bind(
+                    AsynchronousServerSocketChannel.open().bind(
                             new InetSocketAddress(listenPort));
+            
+            listener.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
 
-            ClientSession attachment = new ClientSession(listener, log);
-            listener.accept(attachment, new ConnectionHandler());
+                @Override
+                public void completed(AsynchronousSocketChannel channel,
+                        Void attachment) {
+                    try {
+                        log.info("Client from " + channel.getRemoteAddress() + " connected");
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                    
+                    // accept next connection
+                    listener.accept(null, this);
+                    
+//                    RequestHandler.handle(channel);
+                    HandshakeDecoder.handle(channel);
+                }
 
+                @Override
+                public void failed(Throwable exc, Void attachment) {
+                    log.warning(exc.getMessage());
+                }
+                
+            });
+            
+            // wait indefinitely
             while (true) {
                 Object lock = new Object();
                 synchronized (lock) {
@@ -45,6 +63,7 @@ public class Aiolos {
             }
         } catch (IOException e) {
             log.severe(e.getMessage());
+            return;
         }
     }
     

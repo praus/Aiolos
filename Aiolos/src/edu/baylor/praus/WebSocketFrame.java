@@ -1,7 +1,8 @@
 package edu.baylor.praus;
 
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+
+import edu.baylor.praus.exceptions.WebSocketIllegalProtocolException;
 
 /* 
  0                   1                   2                   3

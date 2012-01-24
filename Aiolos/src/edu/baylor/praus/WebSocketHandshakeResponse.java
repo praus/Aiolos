@@ -3,7 +3,7 @@ package edu.baylor.praus;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import org.apache.commons.codec.binary.Base64;
+//import org.apache.commons.codec.binary.Base64;
 
 public class WebSocketHandshakeResponse {
     private String wsKey;
@@ -20,7 +20,7 @@ public class WebSocketHandshakeResponse {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-1");
             byte[] hash = md.digest(wsKey.concat(guid).getBytes());
-            wsAccept = new Base64().encodeAsString(hash);
+            wsAccept = javax.xml.bind.DatatypeConverter.printBase64Binary(hash);
         } catch (NoSuchAlgorithmException e) {
         }
     }
