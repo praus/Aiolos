@@ -1,19 +1,13 @@
 package edu.baylor.praus.websocket;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
 import java.util.logging.Logger;
 
 import edu.baylor.praus.ClientSession;
 
-public class HandshakeResponder implements CompletionHandler<Integer, ClientSession> {
+public class HandshakeResponder extends Encoder {
+
     public static final Logger log = Logger.getLogger("aiolos.networking");
-    protected final AsynchronousSocketChannel channel;
-    protected ClientSession attachment;
-    protected final ByteBuffer buf;
-    private static final int BUFF_SIZE = 4096;
     
     public static void create(ClientSession attachment,
             AsynchronousSocketChannel channel) {
@@ -39,24 +33,12 @@ public class HandshakeResponder implements CompletionHandler<Integer, ClientSess
     
     public HandshakeResponder(ClientSession attachment,
             AsynchronousSocketChannel channel) {
-        this.channel = channel;
-        this.attachment = attachment;
-        // TODO: don't create the buffer each time, reuse it
-        this.buf = ByteBuffer.allocateDirect(BUFF_SIZE);
+        super(channel, attachment);        
     }
 
     @Override
     public void completed(Integer result, ClientSession attachment) {
-        if (result == -1) {
-            try {
-                log.info("Client " + channel.getRemoteAddress() + " disconnected abruptly.");
-                channel.close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-            return;
-        }
-        this.attachment = attachment;
+        super.completed(result, attachment);
         
         // check if we have something to write
         if (buf.hasRemaining()) {
@@ -68,9 +50,5 @@ public class HandshakeResponder implements CompletionHandler<Integer, ClientSess
         }
     }
 
-    @Override
-    public void failed(Throwable exc, ClientSession attachment) {
-        exc.printStackTrace();
-        log.warning(exc.getMessage());
-    }
+    
 }

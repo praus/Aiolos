@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 import edu.baylor.praus.websocket.WebSocketFrame;
 
 public class Aiolos {
-    private LinkedBlockingDeque<byte[]> outgoing = new LinkedBlockingDeque<>();
+    private LinkedBlockingDeque<WebSocketFrame> outgoing = new LinkedBlockingDeque<>();
     private LinkedBlockingDeque<WebSocketFrame> incoming = new LinkedBlockingDeque<>();
 
     public static void main(String[] args) {
@@ -35,12 +35,14 @@ public class Aiolos {
         public void receive() {         
             try {
                 WebSocketFrame frame = incoming.take();
-                ByteBuffer data = frame.getData();
+                ByteBuffer data = frame.getDataCopy();
                 byte[] d = new byte[data.limit()];
                 data.get(d);
                 String msg = new String(d);
                 log.log(Level.INFO, "Echo: {0}", msg);
-                outgoing.put(d);
+                
+                WebSocketFrame respFrame = WebSocketFrame.createMessage(msg);
+                outgoing.put(respFrame);
             } catch (InterruptedException e) {
             }
         }

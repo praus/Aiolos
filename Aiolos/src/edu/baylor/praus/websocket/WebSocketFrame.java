@@ -95,7 +95,7 @@ public class WebSocketFrame {
     }
 
     public static WebSocketFrame createMessage(String message) {
-        ByteBuffer buf = ByteBuffer.allocate(message.length());
+        ByteBuffer buf = ByteBuffer.allocate(message.length()*2);
         buf.put(message.getBytes());
         buf.flip();
         WebSocketFrame f = new WebSocketFrame(buf);
@@ -106,6 +106,17 @@ public class WebSocketFrame {
         this(true, OpCode.Text, false, 0, new byte[1], data);
     }
 
+    public WebSocketFrame(boolean fin, OpCode opcode, boolean mask,
+            int payloadLength, byte[] maskingKey) {
+        this(fin, opcode, mask, payloadLength, maskingKey,
+                ByteBuffer.allocate(payloadLength));
+        /*
+         * TODO: allocating a whole buffer to the size of the payload will
+         * fail if we are going to support large payloads above 64KB!
+         * We'll need an option for the data to not be part of this frame object
+         */
+    }
+    
     public WebSocketFrame(boolean fin, OpCode opcode, boolean mask,
             int payloadLength, byte[] maskingKey, ByteBuffer data) {
         this.fin = fin;
@@ -173,7 +184,11 @@ public class WebSocketFrame {
         this.maskingKey = maskingKey;
     }
 
-    public ByteBuffer getData() {
+    protected ByteBuffer getData() {
+        return data;
+    }
+    
+    public ByteBuffer getDataCopy() {
         return data.asReadOnlyBuffer();
     }
 

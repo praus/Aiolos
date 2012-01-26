@@ -3,6 +3,8 @@ package edu.baylor.praus;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import edu.baylor.praus.Aiolos.ServerHandler;
+import edu.baylor.praus.websocket.FrameDecoder;
+import edu.baylor.praus.websocket.FrameEncoder;
 import edu.baylor.praus.websocket.WebSocketFrame;
 import edu.baylor.praus.websocket.WebSocketHandshakeRequest;
 
@@ -15,11 +17,14 @@ public class ClientSession {
      */
     private boolean connected;
     private ServerHandler serverHandler;
-    private LinkedBlockingDeque<byte[]> outgoing;
+    private LinkedBlockingDeque<WebSocketFrame> outgoing;
     private LinkedBlockingDeque<WebSocketFrame> incoming;
     
+    private FrameDecoder frameDecoder;
+    private FrameEncoder frameEncoder;
+    
     public ClientSession(ServerHandler serverHandler,
-            LinkedBlockingDeque<byte[]> outgoing,
+            LinkedBlockingDeque<WebSocketFrame> outgoing,
             LinkedBlockingDeque<WebSocketFrame> incoming) {
         this.serverHandler = serverHandler;
         this.outgoing = outgoing;
@@ -50,12 +55,28 @@ public class ClientSession {
         this.serverHandler = serverHandler;
     }
 
-    public LinkedBlockingDeque<byte[]> getOutgoing() {
+    public LinkedBlockingDeque<WebSocketFrame> getOutgoing() {
         return outgoing;
     }
 
     public LinkedBlockingDeque<WebSocketFrame> getIncoming() {
         return incoming;
+    }
+
+    public FrameDecoder getDecoder() {
+        return frameDecoder;
+    }
+
+    public void setDecoder(FrameDecoder decoder) {
+        this.frameDecoder = decoder;
+    }
+
+    public FrameEncoder getEncoder() {
+        return frameEncoder;
+    }
+
+    public void setEncoder(FrameEncoder encoder) {
+        this.frameEncoder = encoder;
     }
     
     

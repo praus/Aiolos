@@ -16,26 +16,29 @@ import edu.baylor.praus.websocket.HandshakeDecoder;
 import edu.baylor.praus.websocket.WebSocketFrame;
 
 public class Server implements Runnable {
+    public static final int BUFF_SIZE = 4096;
     public static final String logFile = "server.log";
     public static final Level logLevel = Level.FINEST;
-    
+
     private int listenPort = 8080;
-//    private ServerHandler serverHandler;
-//    private LinkedBlockingDeque<byte[]> outgoing;
-//    private LinkedBlockingDeque<WebSocketFrame> incoming;
+    // private ServerHandler serverHandler;
+    // private LinkedBlockingDeque<byte[]> outgoing;
+    // private LinkedBlockingDeque<WebSocketFrame> incoming;
     private ClientSession session;
 
-    public Server(ServerHandler sh, LinkedBlockingDeque<byte[]> outgoing,
+    public Server(ServerHandler sh,
+            LinkedBlockingDeque<WebSocketFrame> outgoing,
             LinkedBlockingDeque<WebSocketFrame> incoming) {
         this(sh, outgoing, incoming, 8080);
     }
-    
-    public Server(ServerHandler sh, LinkedBlockingDeque<byte[]> outgoing,
+
+    public Server(ServerHandler sh,
+            LinkedBlockingDeque<WebSocketFrame> outgoing,
             LinkedBlockingDeque<WebSocketFrame> incoming, int listenPort) {
-//        this.serverHandler = sh;
-//        this.outgoing = outgoing;
-//        this.incoming = incoming;
-        
+        // this.serverHandler = sh;
+        // this.outgoing = outgoing;
+        // this.incoming = incoming;
+
         this.session = new ClientSession(sh, outgoing, incoming);
     }
 
@@ -92,7 +95,7 @@ public class Server implements Runnable {
             return;
         }
     }
-    
+
     private static Logger configureLogger() {
         Logger log = Logger.getLogger("aiolos.network");
         FileHandler fh;

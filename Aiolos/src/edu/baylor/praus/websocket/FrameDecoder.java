@@ -1,5 +1,6 @@
 package edu.baylor.praus.websocket;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 
@@ -10,7 +11,12 @@ import edu.baylor.praus.websocket.WebSocketFrame.OpCode;
 
 public class FrameDecoder extends Decoder {
 
-    class WebSocketFrameDecoder extends DataConsumer {
+    /**
+     * Frame being currently decoded or a frame that was decoded last.
+     */
+    private WebSocketFrame frame;
+    
+    class WebSocketHeaderDecoder extends DataConsumer {
 
         @Override
         public void consume() throws InvalidRequestException {
@@ -57,17 +63,10 @@ public class FrameDecoder extends Decoder {
             }
 
             byte[] maskingKey = new byte[4];
-            ByteBuffer data = ByteBuffer.allocate(payloadLength);
-
+            
             if (mask) { // we need to unmask the payload
                 readBuf.get(maskingKey);
-                for (int i = 0; i < payloadLength; i++) {
-                    byte unmasked = (byte) (readBuf.get() ^ maskingKey[i % 4]);
-                    //System.out.print(new Character((char) unmasked));
-                    data.put(unmasked);
-                }
-                data.flip();
-            } else { // unmasked payload from the client - fail
+            } else { // non-masked payload from the client - fail
                 throw new WebSocketIllegalProtocolException(
                         "Unmasked payload from the client");
             }
@@ -78,19 +77,77 @@ public class FrameDecoder extends Decoder {
             }
             success();
             // we've all we need to construct a new frame!
-            WebSocketFrame frame = new WebSocketFrame(fin, opcode, mask,
-                    payloadLength, maskingKey, data);
+            frame = new WebSocketFrame(fin, opcode, mask,
+                    payloadLength, maskingKey);
+        }
+        
+    }
+    
+    class WebSocketFrameDataDecoder extends DataConsumer {
+
+        private int alreadyRead = 0;
+        
+        @Override
+        public void consume() throws InvalidRequestException {
+            ByteBuffer data = frame.getData();
+            byte[] maskingKey = frame.getMaskingKey();
+            
+            for (int i = 0; i < frame.getPayloadLength()-alreadyRead; i++) {
+                try {
+                    byte masked = readBuf.get();
+                    byte unmasked = (byte) (masked ^ maskingKey[i % 4]);
+                    // System.out.print((char) unmasked);
+                    data.put(unmasked);
+                } catch (BufferUnderflowException ex) {
+                    // not enough enough data, return and wait for next batch
+                    alreadyRead += i - (i % 4);
+                    readBuf.position(readBuf.position()-(i % 4));
+                    return;
+                }
+            }
+            System.out.println();
+            // we've read all the data specified in the header
+            success();
+            data.flip();
             notifyClient(frame);
         }
     }
     
     public FrameDecoder(AsynchronousSocketChannel channel, ClientSession att) {
         super(channel, att);
-        consumerQueue.add(new WebSocketFrameDecoder());
+        makeConsumerQueue();
+    }
+    
+    private void makeConsumerQueue() {
+        consumerQueue.add(new WebSocketHeaderDecoder());
+        consumerQueue.add(new WebSocketFrameDataDecoder());
+    }
+    
+    @Override
+    protected void consumerSuccessful() {
+        // TODO: reuse decoder objects instead of deleting and restoring them 
+        super.consumerSuccessful();
+        if (consumerQueue.isEmpty()) {
+            makeConsumerQueue();
+        }
+    }
+    
+    @Override
+    public void completed(Integer result, ClientSession attachment) {
+        super.completed(result, attachment);
+        
+        FrameEncoder encoder = attachment.getEncoder();
+        if (encoder != null) {
+            encoder.startWriting();
+        } else {
+            FrameEncoder.handle(channel, attachment);
+        }
     }
     
     public static void handle(AsynchronousSocketChannel channel, ClientSession attachment) {
-        new FrameDecoder(channel, attachment).startReading();
+        FrameDecoder fd = new FrameDecoder(channel, attachment);
+        attachment.setDecoder(fd);
+        fd.startReading();
     }
 
 }
