@@ -45,8 +45,9 @@ public class HandshakeResponder extends Encoder {
             channel.write(buf, attachment, this);
         } else {
             // connection is established and we'll hand control to the
-            // frame handler
+            // frame handlers
             FrameDecoder.handle(channel, attachment);
+            FrameEncoder.handle(channel, attachment);
         }
     }
 

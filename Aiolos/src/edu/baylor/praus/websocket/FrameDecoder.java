@@ -129,6 +129,8 @@ public class FrameDecoder extends Decoder {
         super.consumerSuccessful();
         if (consumerQueue.isEmpty()) {
             makeConsumerQueue();
+            System.out.println("XXX");
+            channel.read(readBuf, attachment, this);
         }
     }
     
@@ -136,12 +138,12 @@ public class FrameDecoder extends Decoder {
     public void completed(Integer result, ClientSession attachment) {
         super.completed(result, attachment);
         
-        FrameEncoder encoder = attachment.getEncoder();
-        if (encoder != null) {
-            encoder.startWriting();
-        } else {
-            FrameEncoder.handle(channel, attachment);
-        }
+//        FrameEncoder encoder = attachment.getEncoder();
+//        if (encoder != null) {
+//            encoder.startWriting();
+//        } else {
+//            FrameEncoder.handle(channel, attachment);
+//        }
     }
     
     public static void handle(AsynchronousSocketChannel channel, ClientSession attachment) {

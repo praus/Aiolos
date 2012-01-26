@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.LinkedList;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import edu.baylor.praus.ClientSession;
@@ -76,7 +75,8 @@ public abstract class Decoder implements
     
     protected void consumerUnsuccessful() {
         /* Consumer was not successful, we will try reading again */
-        channel.read(readBuf, 10, TimeUnit.MILLISECONDS, attachment, this);
+        // channel.read(readBuf, 10, TimeUnit.MILLISECONDS, attachment, this);
+        channel.read(readBuf, attachment, this);
     }
 
     @Override
