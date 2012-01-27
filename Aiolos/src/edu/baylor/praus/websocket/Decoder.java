@@ -63,9 +63,9 @@ public abstract class Decoder implements
         }
     }
 
-    protected void notifyClient(WebSocketFrame frame) {
+    protected boolean notifyClient(WebSocketFrame frame) {
         IServerHandler sh = attachment.getServerHandler();
         sh.getQueue().add(frame);
-        attachment.getServerHandler().receive(attachment);
+        return attachment.getServerHandler().receive(attachment);
     }
 }

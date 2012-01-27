@@ -13,6 +13,7 @@ import edu.baylor.praus.exceptions.ClientDoesNotSupportWebSocketException;
 import edu.baylor.praus.exceptions.InvalidMethodException;
 import edu.baylor.praus.exceptions.InvalidRequestException;
 import edu.baylor.praus.exceptions.InvalidWebSocketRequestException;
+import edu.baylor.praus.exceptions.WebSocketIllegalProtocolException;
 
 public class WebSocketHandshakeRequest {
     private String method;
@@ -122,6 +123,13 @@ public class WebSocketHandshakeRequest {
                 || this.getHost() == null) {
             throw new InvalidWebSocketRequestException(
                     "Request is missing some mandatory header.");
+        }
+        
+        // http://tools.ietf.org/html/rfc6455#section-11.6
+        // This server will accept only version 13
+        if (this.getWsVersion() != "13") {
+            String errmsg = String.format("Version {0} is not supported", this.getWsVersion());
+            throw new WebSocketIllegalProtocolException(errmsg);
         }
     }
 

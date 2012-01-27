@@ -6,7 +6,7 @@ import edu.baylor.praus.websocket.WebSocketFrame;
 
 public interface IServerHandler {
 
-    public void receive(ClientSession attachment);
+    public boolean receive(ClientSession attachment);
     
     public LinkedBlockingDeque<WebSocketFrame> getQueue();
 }

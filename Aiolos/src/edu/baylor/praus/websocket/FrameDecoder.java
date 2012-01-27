@@ -6,17 +6,30 @@ import java.nio.channels.AsynchronousSocketChannel;
 
 import edu.baylor.praus.ClientSession;
 import edu.baylor.praus.exceptions.InvalidRequestException;
+import edu.baylor.praus.exceptions.UnsupportedWebSocketExtensionException;
 import edu.baylor.praus.exceptions.WebSocketIllegalProtocolException;
 import edu.baylor.praus.websocket.WebSocketFrame.OpCode;
 
 public class FrameDecoder extends Decoder {
-
+    
+    /**
+     * Represents the possible states of a decoder decoding WebSocket frame.
+     */
     public enum DecoderState {
         HEADER, DATA;
     }
     
+    /**
+     * Current decoder state
+     */
     private DecoderState state = DecoderState.HEADER;
-    private int alreadyRead = 0;
+    
+    /**
+     * If the buffer is too small to fit in entire frame data, we don't want to
+     * throw away the data we decoded. This says how much we already decoded
+     * and we don't reset the buffer all the way.
+     */
+    private int dataAlreadyRead = 0;
     
     /**
      * Frame being currently decoded or a frame that was decoded last.
@@ -27,7 +40,7 @@ public class FrameDecoder extends Decoder {
     public void completed(Integer result, ClientSession attachment) {
         super.completed(result, attachment);
         
-        System.out.println("Reading");
+        System.out.print(state);
         
         try {
             switch (state) {
@@ -40,10 +53,16 @@ public class FrameDecoder extends Decoder {
                     }
                     
                 case DATA:
+                    // indicates whether this communication will continue
+                    boolean cont = true;
+                    
                     if (decodeData()) {
                         state = DecoderState.HEADER;
-                        alreadyRead = 0;
-                    } else {
+                        dataAlreadyRead = 0;
+                        cont = notifyClient(frame);
+                    }
+                    if (cont) {
+                        readBuf.compact();
                         channel.read(readBuf, attachment, this);
                     }
                 break;
@@ -62,15 +81,18 @@ public class FrameDecoder extends Decoder {
          */
         
         readBuf.flip(); // we're going to read => flip the buffer
-
-        byte b = readBuf.get();
-        byte flags = (byte) (0xF & b);
-        boolean fin = (flags & 0x1) == 1;
+        byte[] fhdr = new byte[2]; // fixed 2-byte header
+        if (!Util.getBytes(readBuf, fhdr)) return false;
+        
+        byte b = fhdr[0];
+        //byte flags = (byte) (0xF & (b >> 4));
+        //byte flags = (byte) ((0xF0 & b));
+        boolean fin = ((0x80 & b) >> 7) == 1; // mask: 10000000
         // RSV flags MUST be 0 unless an extension is negotiated that defines
         // meanings for non-zero values.
-        boolean rsv = flags > 1;
+        boolean rsv = ((0x70 & b) >> 4) != 0; // mask: 01110000
         OpCode opcode = OpCode.getOpCodeByNumber(0xF & b);
-        b = readBuf.get();
+        b = fhdr[1];
         boolean mask = (0x1 & (b >> 7)) == 1;
 
         /* The length of the "Payload data", in bytes: if 0-125, that is the
@@ -84,7 +106,7 @@ public class FrameDecoder extends Decoder {
             /* Following 2 bytes interpreted as a 16-bit unsigned integer are
              * the payload length */
             byte[] realLen = new byte[2];
-            readBuf.get(realLen);
+            if (!Util.getBytes(readBuf, realLen)) return false;
             payloadLength = ((realLen[0] & 0xFF) << 8);
             payloadLength |= realLen[1] & 0xFF;
 
@@ -92,24 +114,24 @@ public class FrameDecoder extends Decoder {
             /* Following 8 bytes interpreted as a 64-bit unsigned integer (the
              * most significant bit MUST be 0) are the payload length. */
             byte[] realLen = new byte[8];
-            readBuf.get(realLen);
+            if (!Util.getBytes(readBuf, realLen)) return false;
             // TODO: not implemented yet
         }
 
         byte[] maskingKey = new byte[4];
         
         if (mask) { // we need to unmask the payload
-            readBuf.get(maskingKey);
+            if (!Util.getBytes(readBuf, maskingKey)) return false;
         } else { // non-masked payload from the client - fail
             throw new WebSocketIllegalProtocolException(
-                    "Unmasked payload from the client");
+                    "Client sent unmasked payload.");
         }
 
         if (rsv) {
-            // fail
-            // throw new UnsupportedWebSocketExtensionException();
+            // fail, we don't support any extensions
+            throw new UnsupportedWebSocketExtensionException("");
         }
-        //success();
+        
         // we've all we need to construct a new frame!
         frame = new WebSocketFrame(fin, opcode, mask,
                 payloadLength, maskingKey);
@@ -120,7 +142,7 @@ public class FrameDecoder extends Decoder {
         ByteBuffer data = frame.getData();
         byte[] maskingKey = frame.getMaskingKey();
         
-        for (int i = 0; i < frame.getPayloadLength()-alreadyRead; i++) {
+        for (int i = 0; i < frame.getPayloadLength()-dataAlreadyRead; i++) {
             try {
                 byte masked = readBuf.get();
                 byte unmasked = (byte) (masked ^ maskingKey[i % 4]);
@@ -128,16 +150,13 @@ public class FrameDecoder extends Decoder {
                 data.put(unmasked);
             } catch (BufferUnderflowException ex) {
                 // not enough enough data, return and wait for next batch
-                alreadyRead += i - (i % 4);
+                dataAlreadyRead += i - (i % 4);
                 readBuf.position(readBuf.position()-(i % 4));
                 return false;
             }
         }
-        System.out.println();
         // we've read all the data specified in the header
-        //success();
         data.flip();
-        notifyClient(frame);
         return true;
     }
     

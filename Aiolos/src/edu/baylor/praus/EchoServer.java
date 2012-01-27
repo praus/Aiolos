@@ -1,5 +1,6 @@
 package edu.baylor.praus;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -20,10 +21,20 @@ public class EchoServer implements IServerHandler {
         this.incoming = incoming;
     }
 
+    /**
+     * @return true if the handler wishes to continue in communication
+     */
     @Override
-    public void receive(ClientSession attachment) {
+    public boolean receive(ClientSession attachment) {
         try {
             WebSocketFrame frame = incoming.take();
+            AsynchronousSocketChannel channel = attachment.getChannel();
+            
+            if (frame.isClose()) {
+                channel.close();
+                return false;
+            }
+            
             ByteBuffer data = frame.getDataCopy();
             byte[] d = new byte[data.limit()];
             data.get(d);
@@ -32,11 +43,14 @@ public class EchoServer implements IServerHandler {
 
             WebSocketFrame respFrame = WebSocketFrame.createMessage(msg);
             
-            AsynchronousSocketChannel channel = attachment.getChannel();
+            
             channel.write(respFrame.encode(), attachment, new FrameEncoder(channel, attachment));
             
         } catch (InterruptedException e) {
+        } catch (IOException e) {
+            log.info("Connection was closed gracefully");
         }
+        return true;
     }
 
     @Override

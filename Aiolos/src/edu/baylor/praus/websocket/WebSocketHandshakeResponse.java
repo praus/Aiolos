@@ -3,7 +3,6 @@ package edu.baylor.praus.websocket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-//import org.apache.commons.codec.binary.Base64;
 
 public class WebSocketHandshakeResponse {
     private String wsKey;
@@ -34,7 +33,8 @@ public class WebSocketHandshakeResponse {
         buf.append(statusLine).append("\r\n");
         buf.append("Upgrade: websocket").append("\r\n");
         buf.append("Connection: Upgrade").append("\r\n");
-        buf.append("Sec-WebSocket-Accept: ").append(wsAccept).append("\r\n\r\n");
+        buf.append("Sec-WebSocket-Accept: ").append(wsAccept);
+        buf.append("\r\n\r\n");
         return buf.toString();
     }
 }

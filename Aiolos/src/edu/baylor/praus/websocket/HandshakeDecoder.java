@@ -21,8 +21,7 @@ public class HandshakeDecoder extends Decoder {
     @Override
     public void completed(Integer result, ClientSession attachment) {
         super.completed(result, attachment);
-
-        System.out.println(state);
+        
         try {
             switch (state) {
                 case REQUESTLINE:
