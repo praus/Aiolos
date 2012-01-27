@@ -40,8 +40,6 @@ public class FrameDecoder extends Decoder {
     public void completed(Integer result, ClientSession attachment) {
         super.completed(result, attachment);
         
-        System.out.print(state);
-        
         try {
             switch (state) {
                 case HEADER:
@@ -62,7 +60,7 @@ public class FrameDecoder extends Decoder {
                         cont = notifyClient(frame);
                     }
                     if (cont) {
-                        readBuf.compact();
+                        readBuf.clear();
                         channel.read(readBuf, attachment, this);
                     }
                 break;
@@ -142,19 +140,26 @@ public class FrameDecoder extends Decoder {
         ByteBuffer data = frame.getData();
         byte[] maskingKey = frame.getMaskingKey();
         
+        log.info("Starting from: "+(dataAlreadyRead));
+        
         for (int i = 0; i < frame.getPayloadLength()-dataAlreadyRead; i++) {
-            try {
+            if (readBuf.hasRemaining()) {
                 byte masked = readBuf.get();
                 byte unmasked = (byte) (masked ^ maskingKey[i % 4]);
                 // System.out.print((char) unmasked);
                 data.put(unmasked);
-            } catch (BufferUnderflowException ex) {
+            } else {
                 // not enough enough data, return and wait for next batch
                 dataAlreadyRead += i - (i % 4);
+                log.info("Already read: " + dataAlreadyRead);
                 readBuf.position(readBuf.position()-(i % 4));
+                log.info("readBuf pos: "+readBuf.position());
+                readBuf.clear();
                 return false;
             }
         }
+        log.info("readBuf pos: "+readBuf.position());
+        
         // we've read all the data specified in the header
         data.flip();
         return true;
