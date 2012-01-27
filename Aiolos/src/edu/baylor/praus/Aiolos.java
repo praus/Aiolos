@@ -1,11 +1,6 @@
 package edu.baylor.praus;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import edu.baylor.praus.websocket.WebSocketFrame;
 
 public class Aiolos {

@@ -5,14 +5,12 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 import edu.baylor.praus.websocket.HandshakeDecoder;
-import edu.baylor.praus.websocket.WebSocketFrame;
 
 
 public class Server implements Runnable {
@@ -60,8 +58,7 @@ public class Server implements Runnable {
                             // accept next connection
                             listener.accept(attachment, this);
                             
-                            ClientSession att = new ClientSession(serverHandler);
-                            att.setChannel(channel);
+                            ClientSession att = new ClientSession(serverHandler, channel);
                             HandshakeDecoder.handle(channel, att);
                         }
                         
@@ -85,7 +82,6 @@ public class Server implements Runnable {
             }
         } catch (IOException e) {
             log.severe(e.getMessage());
-            return;
         }
     }
 

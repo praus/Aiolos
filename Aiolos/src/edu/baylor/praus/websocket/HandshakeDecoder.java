@@ -23,32 +23,27 @@ public class HandshakeDecoder extends Decoder {
         super.completed(result, attachment);
 
         System.out.println(state);
-        
-        switch (state) {
-            case REQUESTLINE:
-                try {
+        try {
+            switch (state) {
+                case REQUESTLINE:
                     if (decodeRequestLine()) {
                         state = DecoderState.HEADERS; // continue with headers
                     } else {
                         channel.read(readBuf, attachment, this);
                         break;
                     }
-                } catch (InvalidRequestException e1) {
-                    e1.printStackTrace();
-                }
-                
-            case HEADERS:
-                try {
+
+                case HEADERS:
                     if (decodeHeaders()) {
                         state = DecoderState.REQUESTLINE;
                         HandshakeResponder.create(attachment, channel);
                     } else {
                         channel.read(readBuf, attachment, this);
                     }
-                } catch (InvalidRequestException e) {
-                    e.printStackTrace();
-                }
-                break;
+                    break;
+            }
+        } catch (InvalidRequestException e) {
+            e.printStackTrace();
         }
         // our consumers are empty, formulate and write our response to the
         // handshake
@@ -142,7 +137,7 @@ public class HandshakeDecoder extends Decoder {
                     break;
             }
         }
-        
+
         return false;
     }
 
