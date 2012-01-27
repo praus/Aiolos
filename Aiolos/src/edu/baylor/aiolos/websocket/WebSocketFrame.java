@@ -95,7 +95,7 @@ public class WebSocketFrame {
     }
 
     public static WebSocketFrame createMessage(String message) {
-        ByteBuffer buf = ByteBuffer.allocate(message.length()*2);
+        ByteBuffer buf = ByteBuffer.allocate(message.length());
         buf.put(message.getBytes());
         buf.flip();
         WebSocketFrame f = new WebSocketFrame(buf);
@@ -133,6 +133,11 @@ public class WebSocketFrame {
                 fin ? "1" : "0", opcode, mask ? "1" : "0", payloadLength);
     }
 
+    @Override
+    protected WebSocketFrame clone() {
+        return new WebSocketFrame(fin, opcode, mask, payloadLength, maskingKey, data.duplicate());
+    }
+    
     /**
      * @return Whether this frame is the final frame.
      */

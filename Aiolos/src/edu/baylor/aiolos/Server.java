@@ -14,7 +14,7 @@ import edu.baylor.aiolos.websocket.HandshakeDecoder;
 
 
 public class Server implements Runnable {
-    public static final int BUFF_SIZE = 8192;
+    public static final int BUFF_SIZE = 65536;
     public static final String logFile = "server.log";
     public static final Level logLevel = Level.FINEST;
 
