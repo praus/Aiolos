@@ -21,11 +21,11 @@ public class HandshakeResponder extends Encoder {
         if (wsRequest != null) {
             WebSocketHandshakeResponse r =
                     new WebSocketHandshakeResponse(wsRequest.getWsKey());
-            buf.put(r.getResponse().getBytes());
-            buf.flip();
+            writeBuf.put(r.getResponse().getBytes());
+            writeBuf.flip();
             log.info("Response sent");
             
-            channel.write(buf, attachment, this);
+            channel.write(writeBuf, attachment, this);
         } else {
             // request is somehow malformed, respond with 400, bad request
         }
@@ -33,7 +33,7 @@ public class HandshakeResponder extends Encoder {
     
     public HandshakeResponder(ClientSession attachment,
             AsynchronousSocketChannel channel) {
-        super(channel, attachment);        
+        super(channel, attachment);
     }
 
     @Override
@@ -41,13 +41,12 @@ public class HandshakeResponder extends Encoder {
         super.completed(result, attachment);
         
         // check if we have something to write
-        if (buf.hasRemaining()) {
-            channel.write(buf, attachment, this);
+        if (writeBuf.hasRemaining()) {
+            channel.write(writeBuf, attachment, this);
         } else {
             // connection is established and we'll hand control to the
-            // frame handlers
+            // frame handler
             FrameDecoder.handle(channel, attachment);
-            FrameEncoder.handle(channel, attachment);
         }
     }
 

@@ -11,37 +11,28 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import edu.baylor.praus.Aiolos.ServerHandler;
 import edu.baylor.praus.websocket.HandshakeDecoder;
 import edu.baylor.praus.websocket.WebSocketFrame;
 
+
 public class Server implements Runnable {
-    public static final int BUFF_SIZE = 4096;
+    public static final int BUFF_SIZE = 8192;
     public static final String logFile = "server.log";
     public static final Level logLevel = Level.FINEST;
 
     private int listenPort = 8080;
-    // private ServerHandler serverHandler;
-    // private LinkedBlockingDeque<byte[]> outgoing;
-    // private LinkedBlockingDeque<WebSocketFrame> incoming;
-    private ClientSession session;
+    private IServerHandler serverHandler;
+    
 
-    public Server(ServerHandler sh,
-            LinkedBlockingDeque<WebSocketFrame> outgoing,
-            LinkedBlockingDeque<WebSocketFrame> incoming) {
-        this(sh, outgoing, incoming, 8080);
+    public Server(IServerHandler sh) {
+        this(sh, 8080);
     }
 
-    public Server(ServerHandler sh,
-            LinkedBlockingDeque<WebSocketFrame> outgoing,
-            LinkedBlockingDeque<WebSocketFrame> incoming, int listenPort) {
-        // this.serverHandler = sh;
-        // this.outgoing = outgoing;
-        // this.incoming = incoming;
-
-        this.session = new ClientSession(sh, outgoing, incoming);
+    public Server(IServerHandler serverHandler, int listenPort) {
+        this.serverHandler = serverHandler;
     }
 
+    
     @Override
     public void run() {
         final Logger log = configureLogger();
@@ -51,7 +42,7 @@ public class Server implements Runnable {
                     .open().bind(new InetSocketAddress(listenPort));
 
             listener.accept(
-                    this.session,
+                    null,
                     new CompletionHandler<AsynchronousSocketChannel, ClientSession>() {
 
                         @Override
@@ -65,13 +56,15 @@ public class Server implements Runnable {
                             } catch (IOException ex) {
                                 ex.printStackTrace();
                             }
-
+                            
                             // accept next connection
-                            listener.accept(null, this);
-
-                            HandshakeDecoder.handle(channel, attachment);
+                            listener.accept(attachment, this);
+                            
+                            ClientSession att = new ClientSession(serverHandler);
+                            att.setChannel(channel);
+                            HandshakeDecoder.handle(channel, att);
                         }
-
+                        
                         @Override
                         public void failed(Throwable exc,
                                 ClientSession attachment) {

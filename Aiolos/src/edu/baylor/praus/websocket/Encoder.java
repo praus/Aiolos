@@ -15,13 +15,13 @@ public abstract class Encoder implements
     
     protected final AsynchronousSocketChannel channel;
     protected ClientSession attachment;
-    protected final ByteBuffer buf;
+    protected final ByteBuffer writeBuf;
     
     public Encoder(AsynchronousSocketChannel channel, ClientSession attachment){
         this.channel = channel;
         this.attachment = attachment;
         // TODO: don't create the buffer each time, reuse it
-        this.buf = ByteBuffer.allocateDirect(Server.BUFF_SIZE);
+        this.writeBuf = ByteBuffer.allocateDirect(Server.BUFF_SIZE);
     }
     
     @Override

@@ -14,7 +14,7 @@ import edu.baylor.praus.exceptions.InvalidMethodException;
 import edu.baylor.praus.exceptions.InvalidRequestException;
 import edu.baylor.praus.exceptions.InvalidWebSocketRequestException;
 
-public class WebSocketHandshakeRequest implements Decoder.DataConsumerResult {
+public class WebSocketHandshakeRequest {
     private String method;
     private URI uri;
     private String wsKey;
@@ -22,8 +22,6 @@ public class WebSocketHandshakeRequest implements Decoder.DataConsumerResult {
     private String upgrade;
     private String connection;
     private String host;
-    
-    private boolean completed = false;
 
     public static WebSocketHandshakeRequest decode(ByteBuffer buf)
             throws InvalidRequestException {

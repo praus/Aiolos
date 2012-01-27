@@ -1,8 +1,8 @@
 package edu.baylor.praus;
 
+import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.LinkedBlockingDeque;
 
-import edu.baylor.praus.Aiolos.ServerHandler;
 import edu.baylor.praus.websocket.FrameDecoder;
 import edu.baylor.praus.websocket.FrameEncoder;
 import edu.baylor.praus.websocket.WebSocketFrame;
@@ -16,19 +16,18 @@ public class ClientSession {
      * Handshake has been performed successfuly, continue with frames 
      */
     private boolean connected;
-    private ServerHandler serverHandler;
-    private LinkedBlockingDeque<WebSocketFrame> outgoing;
-    private LinkedBlockingDeque<WebSocketFrame> incoming;
+    private IServerHandler serverHandler;
+//    private LinkedBlockingDeque<WebSocketFrame> incoming;
+    
+    private AsynchronousSocketChannel channel;
     
     private FrameDecoder frameDecoder;
     private FrameEncoder frameEncoder;
     
-    public ClientSession(ServerHandler serverHandler,
-            LinkedBlockingDeque<WebSocketFrame> outgoing,
-            LinkedBlockingDeque<WebSocketFrame> incoming) {
+    public ClientSession(IServerHandler serverHandler) {
+//            LinkedBlockingDeque<WebSocketFrame> incoming) {
         this.serverHandler = serverHandler;
-        this.outgoing = outgoing;
-        this.incoming = incoming;
+//        this.incoming = incoming;
     }
     
     public WebSocketHandshakeRequest getHandshakeRequest() {
@@ -47,21 +46,17 @@ public class ClientSession {
         this.connected = connected;
     }
 
-    public ServerHandler getServerHandler() {
+    public IServerHandler getServerHandler() {
         return serverHandler;
     }
 
-    public void setServerHandler(ServerHandler serverHandler) {
+    public void setServerHandler(IServerHandler serverHandler) {
         this.serverHandler = serverHandler;
     }
 
-    public LinkedBlockingDeque<WebSocketFrame> getOutgoing() {
-        return outgoing;
-    }
-
-    public LinkedBlockingDeque<WebSocketFrame> getIncoming() {
-        return incoming;
-    }
+//    public LinkedBlockingDeque<WebSocketFrame> getIncoming() {
+//        return incoming;
+//    }
 
     public FrameDecoder getDecoder() {
         return frameDecoder;
@@ -77,6 +72,14 @@ public class ClientSession {
 
     public void setEncoder(FrameEncoder encoder) {
         this.frameEncoder = encoder;
+    }
+
+    public AsynchronousSocketChannel getChannel() {
+        return channel;
+    }
+
+    public void setChannel(AsynchronousSocketChannel channel) {
+        this.channel = channel;
     }
     
     
