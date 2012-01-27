@@ -1,9 +1,9 @@
-package edu.baylor.praus.websocket;
+package edu.baylor.aiolos.websocket;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.logging.Logger;
 
-import edu.baylor.praus.ClientSession;
+import edu.baylor.aiolos.ClientSession;
 
 public class HandshakeResponder extends Encoder {
 

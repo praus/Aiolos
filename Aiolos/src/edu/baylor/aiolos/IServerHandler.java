@@ -1,8 +1,8 @@
-package edu.baylor.praus;
+package edu.baylor.aiolos;
 
 import java.util.concurrent.LinkedBlockingDeque;
 
-import edu.baylor.praus.websocket.WebSocketFrame;
+import edu.baylor.aiolos.websocket.WebSocketFrame;
 
 public interface IServerHandler {
 

@@ -1,13 +1,13 @@
-package edu.baylor.praus.websocket;
+package edu.baylor.aiolos.websocket;
 
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.baylor.praus.ClientSession;
-import edu.baylor.praus.exceptions.InvalidMethodException;
-import edu.baylor.praus.exceptions.InvalidRequestException;
-import edu.baylor.praus.exceptions.InvalidWebSocketRequestException;
+import edu.baylor.aiolos.ClientSession;
+import edu.baylor.aiolos.exceptions.InvalidMethodException;
+import edu.baylor.aiolos.exceptions.InvalidRequestException;
+import edu.baylor.aiolos.exceptions.InvalidWebSocketRequestException;
 
 public class HandshakeDecoder extends Decoder {
 

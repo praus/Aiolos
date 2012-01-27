@@ -1,4 +1,4 @@
-package edu.baylor.praus;
+package edu.baylor.aiolos;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -7,8 +7,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import edu.baylor.praus.websocket.FrameEncoder;
-import edu.baylor.praus.websocket.WebSocketFrame;
+import edu.baylor.aiolos.websocket.FrameEncoder;
+import edu.baylor.aiolos.websocket.WebSocketFrame;
 
 public class EchoServer implements IServerHandler {
     

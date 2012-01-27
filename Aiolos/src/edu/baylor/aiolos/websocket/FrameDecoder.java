@@ -1,13 +1,13 @@
-package edu.baylor.praus.websocket;
+package edu.baylor.aiolos.websocket;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 
-import edu.baylor.praus.ClientSession;
-import edu.baylor.praus.exceptions.InvalidRequestException;
-import edu.baylor.praus.exceptions.UnsupportedWebSocketExtensionException;
-import edu.baylor.praus.exceptions.WebSocketIllegalProtocolException;
-import edu.baylor.praus.websocket.WebSocketFrame.OpCode;
+import edu.baylor.aiolos.ClientSession;
+import edu.baylor.aiolos.exceptions.InvalidRequestException;
+import edu.baylor.aiolos.exceptions.UnsupportedWebSocketExtensionException;
+import edu.baylor.aiolos.exceptions.WebSocketIllegalProtocolException;
+import edu.baylor.aiolos.websocket.WebSocketFrame.OpCode;
 
 public class FrameDecoder extends Decoder {
     
@@ -153,7 +153,7 @@ public class FrameDecoder extends Decoder {
                 log.info("Already read: " + dataAlreadyRead);
                 readBuf.position(readBuf.position()-(i % 4));
                 log.info("readBuf pos: "+readBuf.position());
-                readBuf.clear();
+                readBuf.compact();
                 return false;
             }
         }

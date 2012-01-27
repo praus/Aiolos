@@ -1,4 +1,4 @@
-package edu.baylor.praus;
+package edu.baylor.aiolos;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,7 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import edu.baylor.praus.websocket.HandshakeDecoder;
+import edu.baylor.aiolos.websocket.HandshakeDecoder;
 
 
 public class Server implements Runnable {

@@ -1,4 +1,4 @@
-package edu.baylor.praus.websocket;
+package edu.baylor.aiolos.websocket;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -6,8 +6,8 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.logging.Logger;
 
-import edu.baylor.praus.ClientSession;
-import edu.baylor.praus.Server;
+import edu.baylor.aiolos.ClientSession;
+import edu.baylor.aiolos.Server;
 
 public abstract class Encoder implements
         CompletionHandler<Integer, ClientSession> {

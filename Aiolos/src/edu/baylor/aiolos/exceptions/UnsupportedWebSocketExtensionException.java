@@ -1,4 +1,4 @@
-package edu.baylor.praus.exceptions;
+package edu.baylor.aiolos.exceptions;
 
 
 public class UnsupportedWebSocketExtensionException extends

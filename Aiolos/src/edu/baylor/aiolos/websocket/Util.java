@@ -1,4 +1,4 @@
-package edu.baylor.praus.websocket;
+package edu.baylor.aiolos.websocket;
 
 import java.nio.ByteBuffer;
 

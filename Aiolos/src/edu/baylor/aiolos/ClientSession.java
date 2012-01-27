@@ -1,9 +1,10 @@
-package edu.baylor.praus;
+package edu.baylor.aiolos;
 
 import java.nio.channels.AsynchronousSocketChannel;
-import edu.baylor.praus.websocket.FrameDecoder;
-import edu.baylor.praus.websocket.FrameEncoder;
-import edu.baylor.praus.websocket.WebSocketHandshakeRequest;
+
+import edu.baylor.aiolos.websocket.FrameDecoder;
+import edu.baylor.aiolos.websocket.FrameEncoder;
+import edu.baylor.aiolos.websocket.WebSocketHandshakeRequest;
 
 public class ClientSession {
     private WebSocketHandshakeRequest handshakeRequest;

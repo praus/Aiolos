@@ -1,4 +1,4 @@
-package edu.baylor.praus.websocket;
+package edu.baylor.aiolos.websocket;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -9,11 +9,11 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.baylor.praus.exceptions.ClientDoesNotSupportWebSocketException;
-import edu.baylor.praus.exceptions.InvalidMethodException;
-import edu.baylor.praus.exceptions.InvalidRequestException;
-import edu.baylor.praus.exceptions.InvalidWebSocketRequestException;
-import edu.baylor.praus.exceptions.WebSocketIllegalProtocolException;
+import edu.baylor.aiolos.exceptions.ClientDoesNotSupportWebSocketException;
+import edu.baylor.aiolos.exceptions.InvalidMethodException;
+import edu.baylor.aiolos.exceptions.InvalidRequestException;
+import edu.baylor.aiolos.exceptions.InvalidWebSocketRequestException;
+import edu.baylor.aiolos.exceptions.WebSocketIllegalProtocolException;
 
 public class WebSocketHandshakeRequest {
     private String method;
