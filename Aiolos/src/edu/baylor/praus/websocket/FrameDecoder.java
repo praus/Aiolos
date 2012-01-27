@@ -1,6 +1,5 @@
 package edu.baylor.praus.websocket;
 
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 
@@ -60,7 +59,7 @@ public class FrameDecoder extends Decoder {
                         cont = notifyClient(frame);
                     }
                     if (cont) {
-                        readBuf.clear();
+                        readBuf.compact();
                         channel.read(readBuf, attachment, this);
                     }
                 break;
