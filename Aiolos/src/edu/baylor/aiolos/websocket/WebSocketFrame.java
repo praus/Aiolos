@@ -2,6 +2,8 @@ package edu.baylor.aiolos.websocket;
 
 import java.nio.ByteBuffer;
 
+import edu.baylor.websocket.IWSMessage;
+
 /* 
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -23,17 +25,47 @@ import java.nio.ByteBuffer;
  +---------------------------------------------------------------+
  */
 
-public class WebSocketFrame {
+/**
+ * Object representation of a WebSocket frame.
+ */
+public class WebSocketFrame implements IWSMessage {
 
-    boolean fin;
-    OpCode opcode;
-    boolean mask;
-    int payloadLength;
-    byte[] maskingKey;
-    ByteBuffer data;
+    /**
+     * FIN bit, every non-fragmented bit should have this set. It has
+     * nothing to do with closing of connection.
+     */
+    private boolean fin;
 
-    ByteBuffer encoded; // encoded frame ready for wire transmission
+    /**
+     * Type of the frame.
+     */
+    private OpCode opcode;
 
+    /**
+     * Whether this frame's data are masked by maskingKey.
+     */
+    private boolean mask;
+
+    /**
+     * Size of the payload
+     */
+    private int payloadLength;
+
+    /**
+     * If the payload (data) is masked, it needs to be XORed (in a special way)
+     * with this value.
+     */
+    private byte[] maskingKey;
+    private ByteBuffer data;
+
+    /**
+     * encoded frame ready for wire transmission
+     */
+    private ByteBuffer encoded;
+
+    /**
+     * Type of frame.
+     */
     public enum OpCode {
         Continuation(0x0), Text(0x1), Binary(0x2), ConnectionClose(0x8),
         Ping(0x9), Pong(0xA);
@@ -63,16 +95,21 @@ public class WebSocketFrame {
         }
     }
 
+    /**
+     * Encodes contents of this frame into bytes stored in ByteBuffer
+     * 
+     * @return buffer with encoded data, ready for reading (flipped)
+     */
     public ByteBuffer encode() {
         encoded = ByteBuffer.allocate(64 + data.limit());
         byte flags = 0b1000; // fin
         byte opcode = (byte) this.opcode.getOpCodeNumber();
         encoded.put((byte) (opcode | (flags << 4)));
-        
+
         byte mask = 0;
         int payloadLen = data.limit();
         // short statusCode = 1000;
-        
+
         int firstLen = payloadLen; // first length field
         byte[] extendedLen = new byte[0];
         if (payloadLen > 65536) { // use 64 bit field for really large payloads
@@ -94,6 +131,13 @@ public class WebSocketFrame {
         return encoded;
     }
 
+    /**
+     * Wrapper around constructor that allows to easily send a text message.
+     * 
+     * @param message
+     *            text of the message
+     * @return frame with message encoded as data in the frame
+     */
     public static WebSocketFrame createMessage(String message) {
         ByteBuffer buf = ByteBuffer.allocate(message.length());
         buf.put(message.getBytes());
@@ -102,21 +146,54 @@ public class WebSocketFrame {
         return f;
     }
 
+    /**
+     * Constructor with values for default frame
+     * 
+     * @param data
+     *            payload of the frame
+     */
     public WebSocketFrame(ByteBuffer data) {
-        this(true, OpCode.Text, false, 0, new byte[1], data);
+        this(true, OpCode.Text, false, data.remaining(), null, data);
     }
 
+    /**
+     * Constructor without data, they are to be specified later or left blank
+     * 
+     * @param fin
+     *            whether FIN bit should be set
+     * @param opcode
+     *            type of frame
+     * @param mask
+     *            whether this frame is masked
+     * @param payloadLength
+     *            payload size (capacity of the data buffer)
+     * @param maskingKey
+     *            for unmasking data (if mask==true)
+     */
     public WebSocketFrame(boolean fin, OpCode opcode, boolean mask,
             int payloadLength, byte[] maskingKey) {
-        this(fin, opcode, mask, payloadLength, maskingKey,
-                ByteBuffer.allocate(payloadLength));
-        /*
-         * TODO: allocating a whole buffer to the size of the payload will
+        this(fin, opcode, mask, payloadLength, maskingKey, ByteBuffer
+                .allocate(payloadLength));
+        /* TODO: allocating a whole buffer to the size of the payload will
          * fail if we are going to support large payloads above 64KB!
          * We'll need an option for the data to not be part of this frame object
-         */
+         * Some kind of streaming API maybe */
     }
-    
+
+    /**
+     * Constructor for setting every aspect of the frame
+     * 
+     * @param fin
+     *            whether FIN bit should be set
+     * @param opcode
+     *            type of frame
+     * @param mask
+     *            whether this frame is masked
+     * @param payloadLength
+     *            payload size (capacity of the data buffer)
+     * @param maskingKey
+     *            for unmasking data (if mask==true)
+     */
     public WebSocketFrame(boolean fin, OpCode opcode, boolean mask,
             int payloadLength, byte[] maskingKey, ByteBuffer data) {
         this.fin = fin;
@@ -129,15 +206,25 @@ public class WebSocketFrame {
 
     @Override
     public String toString() {
-        return String.format("FIN:%s OPCODE:%s MASK:%s LEN:%s\n",
-                fin ? "1" : "0", opcode, mask ? "1" : "0", payloadLength);
+        return String.format("FIN:%s OPCODE:%s MASK:%s LEN:%s\n", fin ? "1"
+                : "0", opcode, mask ? "1" : "0", payloadLength);
     }
 
+    /**
+     * Clones the frame object. Note that data buffer is not entirely
+     * independent
+     * for efficiency purposes. There's no need to really duplicate the frame
+     * content since data buffers in frame objects are usually not going to be
+     * reused.
+     * 
+     * @return independent WebSocketFrame instance
+     */
     @Override
     protected WebSocketFrame clone() {
-        return new WebSocketFrame(fin, opcode, mask, payloadLength, maskingKey, data.duplicate());
+        return new WebSocketFrame(fin, opcode, mask, payloadLength, maskingKey,
+                data.duplicate());
     }
-    
+
     /**
      * @return Whether this frame is the final frame.
      */
@@ -189,16 +276,47 @@ public class WebSocketFrame {
         this.maskingKey = maskingKey;
     }
 
-    protected ByteBuffer getData() {
+    protected ByteBuffer getDataAsByteBuffer() {
         return data;
     }
-    
+
     public ByteBuffer getDataCopy() {
         return data.asReadOnlyBuffer();
     }
 
     public void setData(ByteBuffer data) {
         this.data = data;
+    }
+
+    @Override
+    public byte[] getData() {
+        byte[] d = new byte[this.data.remaining()];
+        this.data.asReadOnlyBuffer().get(d);
+        return d;
+    }
+
+    @Override
+    public void setData(byte[] d) {
+        this.data.clear();
+        this.data.put(d);
+    }
+
+    @Override
+    public WSMessageType getMessageType() {
+        switch (opcode) {
+            case Text:
+                return WSMessageType.TEXT;
+            case Binary:
+                return WSMessageType.BINARY;
+            default:
+                // The interface is incomplete and does not reflect
+                // other opcodes, we'll return null in those cases.
+                return null;
+        }
+    }
+
+    @Override
+    public void setMessageType(WSMessageType type) {
     }
 
 }

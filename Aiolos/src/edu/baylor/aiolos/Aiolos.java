@@ -5,6 +5,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 import edu.baylor.aiolos.websocket.WebSocketFrame;
 
 public class Aiolos {
+    /**
+     * Queue for incoming messages.
+     */
     private LinkedBlockingDeque<WebSocketFrame> incoming = new LinkedBlockingDeque<>();
 
     public static void main(String[] args) {

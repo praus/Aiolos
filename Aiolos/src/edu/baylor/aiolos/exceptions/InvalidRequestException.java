@@ -1,6 +1,8 @@
 package edu.baylor.aiolos.exceptions;
 
-public class InvalidRequestException extends Exception {
+import edu.baylor.websocket.WSException;
+
+public class InvalidRequestException extends WSException {
     
     private static final long serialVersionUID = 1L;
 

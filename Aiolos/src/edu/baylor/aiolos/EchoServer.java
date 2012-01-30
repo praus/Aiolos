@@ -10,13 +10,16 @@ import java.util.logging.Logger;
 import edu.baylor.aiolos.websocket.FrameEncoder;
 import edu.baylor.aiolos.websocket.WebSocketFrame;
 
+/**
+ * This is a very simple handler of the events from the handlers -- it just
+ * echoes the message back.
+ */
 public class EchoServer implements IServerHandler {
-    
+
     public final Logger log = Logger.getLogger("aiolos.handler.echo");
-    
+
     LinkedBlockingDeque<WebSocketFrame> incoming;
-    
-    
+
     public EchoServer(LinkedBlockingDeque<WebSocketFrame> incoming) {
         this.incoming = incoming;
     }
@@ -29,12 +32,12 @@ public class EchoServer implements IServerHandler {
         try {
             WebSocketFrame frame = incoming.take();
             AsynchronousSocketChannel channel = attachment.getChannel();
-            
+
             if (frame.isClose()) {
                 channel.close();
                 return false;
             }
-            
+
             ByteBuffer data = frame.getDataCopy();
             byte[] d = new byte[data.limit()];
             data.get(d);
@@ -42,10 +45,10 @@ public class EchoServer implements IServerHandler {
             log.log(Level.INFO, "Echo: {0}", msg);
 
             WebSocketFrame respFrame = WebSocketFrame.createMessage(msg);
-            
-            
-            channel.write(respFrame.encode(), attachment, new FrameEncoder(channel, attachment));
-            
+
+            channel.write(respFrame.encode(), attachment, new FrameEncoder(
+                    channel, attachment));
+
         } catch (InterruptedException e) {
         } catch (IOException e) {
             log.info("Connection was closed gracefully");

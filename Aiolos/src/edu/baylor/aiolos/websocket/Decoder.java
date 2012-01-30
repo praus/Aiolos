@@ -10,6 +10,9 @@ import edu.baylor.aiolos.ClientSession;
 import edu.baylor.aiolos.IServerHandler;
 import edu.baylor.aiolos.Server;
 
+/**
+ * Functionality common for all (two :-)) decoders.
+ */
 public abstract class Decoder implements
         CompletionHandler<Integer, ClientSession> {
 
@@ -17,7 +20,7 @@ public abstract class Decoder implements
     protected final AsynchronousSocketChannel channel;
     protected ClientSession attachment;
     protected final ByteBuffer readBuf;
-    protected volatile boolean isReading;
+//    protected volatile boolean isReading;
 
     public Decoder(AsynchronousSocketChannel channel, ClientSession attachment) {
         this.channel = channel;
@@ -50,7 +53,7 @@ public abstract class Decoder implements
 
     protected void startReading() {
         readBuf.clear();
-        isReading = true;
+//        isReading = true;
         channel.read(readBuf, attachment, this);
     }
 
