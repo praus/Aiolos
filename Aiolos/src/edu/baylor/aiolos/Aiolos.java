@@ -20,7 +20,7 @@ public class Aiolos {
     /**
      * Level of the server logging
      */
-    public static final Level logLevel = Level.ALL;
+    public static final Level logLevel = Level.INFO;
     
     /**
      * Queue for incoming messages.

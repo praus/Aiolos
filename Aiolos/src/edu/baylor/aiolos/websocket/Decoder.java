@@ -69,7 +69,7 @@ public abstract class Decoder implements
 
     protected boolean notifyClient(WebSocketFrame frame) {
         IServerHandler sh = attachment.getServerHandler();
-        log.info("Received: "+frame);
+        log.fine("Received: "+frame);
         sh.getQueue().add(frame);
         return attachment.getServerHandler().receive(attachment);
     }

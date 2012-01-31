@@ -7,6 +7,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.logging.Logger;
 
+import edu.baylor.aiolos.websocket.FrameEncoder;
 import edu.baylor.aiolos.websocket.HandshakeDecoder;
 
 /**
@@ -64,6 +65,7 @@ public class Server implements Runnable {
                             // and hand it over to the handshake decoder
                             ClientSession att = new ClientSession(
                                     serverHandler, channel);
+                            att.setEncoder(new FrameEncoder(channel, attachment));
                             HandshakeDecoder.handle(channel, att);
                         }
 

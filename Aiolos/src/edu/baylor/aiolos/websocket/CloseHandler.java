@@ -22,9 +22,10 @@ public class CloseHandler extends Decoder {
     public void completed(Integer result, ClientSession attachment) {
         super.completed(result, attachment);
 
+        // Close frame was sent, close the TCP connection
         try {
-            log.log(Level.FINE,
-                    "Close frame has been sent, closing TCP connection to {0}",
+            log.log(Level.INFO,
+                    "Closing TCP connection to {0}",
                     channel.getRemoteAddress().toString());
             channel.close();
         } catch (IOException ex) {

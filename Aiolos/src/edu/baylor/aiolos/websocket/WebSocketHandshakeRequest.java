@@ -127,7 +127,7 @@ public class WebSocketHandshakeRequest {
 
         // http://tools.ietf.org/html/rfc6455#section-11.6
         // This server will accept only version 13
-        if (this.getWsVersion() != "13") {
+        if (!this.getWsVersion().equals("13")) {
             // String errmsg = String.format("Version {0} is not supported",
             //        this.getWsVersion());
             //throw new WebSocketIllegalProtocolException(errmsg);

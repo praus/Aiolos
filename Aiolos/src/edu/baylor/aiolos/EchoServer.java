@@ -48,7 +48,8 @@ public class EchoServer implements IServerHandler {
 
             WebSocketFrame respFrame = WebSocketFrame.message(msg);
             log.log(Level.FINE, "Echo frame: {0}", respFrame);
-            FrameEncoder.writeResponse(channel, attachment, respFrame);
+            FrameEncoder fe = attachment.getEncoder();
+            fe.respond(respFrame);
 
         } catch (InterruptedException e) {
             receive(attachment); // try waiting again
