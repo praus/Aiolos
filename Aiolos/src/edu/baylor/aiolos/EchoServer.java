@@ -1,12 +1,12 @@
 package edu.baylor.aiolos;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import edu.baylor.aiolos.websocket.CloseHandler;
 import edu.baylor.aiolos.websocket.FrameEncoder;
 import edu.baylor.aiolos.websocket.WebSocketFrame;
 
@@ -16,7 +16,7 @@ import edu.baylor.aiolos.websocket.WebSocketFrame;
  */
 public class EchoServer implements IServerHandler {
 
-    public final Logger log = Logger.getLogger("aiolos.handler.echo");
+    public static final Logger log = Logger.getLogger("aiolos.handler.echo");
 
     LinkedBlockingDeque<WebSocketFrame> incoming;
 
@@ -34,7 +34,9 @@ public class EchoServer implements IServerHandler {
             AsynchronousSocketChannel channel = attachment.getChannel();
 
             if (frame.isClose()) {
-                channel.close();
+                WebSocketFrame closeFrame = WebSocketFrame.closeFrame();
+                channel.write(closeFrame.encode(), attachment,
+                        new CloseHandler(channel, attachment));
                 return false;
             }
 
@@ -43,15 +45,15 @@ public class EchoServer implements IServerHandler {
             data.get(d);
             String msg = new String(d);
             log.log(Level.INFO, "Echo: {0}", msg);
+            log.finest("Test finest");
 
-            WebSocketFrame respFrame = WebSocketFrame.createMessage(msg);
-
+            WebSocketFrame respFrame = WebSocketFrame.message(msg);
+            log.log(Level.INFO, "Echo frame: {0}", respFrame);
             channel.write(respFrame.encode(), attachment, new FrameEncoder(
                     channel, attachment));
 
         } catch (InterruptedException e) {
-        } catch (IOException e) {
-            log.info("Connection was closed gracefully");
+            receive(attachment); // try waiting again
         }
         return true;
     }

@@ -37,7 +37,7 @@ public class WebSocketHandshakeRequest {
          * Sec-WebSocket-Key: 6+m3ssD7l08m+9f5bhCaOA==
          * Sec-WebSocket-Version: 13
          */
-        // TODO: Host is mandatory, check for it
+        
         buf.flip();
         byte[] req = new byte[buf.limit()];
         buf.get(req);

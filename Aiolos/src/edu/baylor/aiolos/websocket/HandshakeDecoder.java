@@ -9,6 +9,10 @@ import edu.baylor.aiolos.exceptions.InvalidMethodException;
 import edu.baylor.aiolos.exceptions.InvalidRequestException;
 import edu.baylor.aiolos.exceptions.InvalidWebSocketRequestException;
 
+/**
+ * This completion handler takes care of the decoding of the initial handshake.
+ * Note that the initial handshake is transparent to the client code.
+ */
 public class HandshakeDecoder extends Decoder {
 
     private WebSocketHandshakeRequest wsRequest;
@@ -34,6 +38,7 @@ public class HandshakeDecoder extends Decoder {
 
                 case HEADERS:
                     if (decodeHeaders()) {
+                        // entire header was read, now it's time to respond
                         state = DecoderState.REQUESTLINE;
                         HandshakeResponder.create(attachment, channel);
                     } else {
@@ -44,19 +49,21 @@ public class HandshakeDecoder extends Decoder {
         } catch (InvalidRequestException e) {
             e.printStackTrace();
         }
-        // our consumers are empty, formulate and write our response to the
-        // handshake
     }
 
     /**
-     * 
-     * @return finished with work?
-     * @throws InvalidRequestException
+     * Decodes the initial request line
+     * @return true if finished with decoding request line and the line is OK
+     * @throws InvalidRequestException if the request line is somehow malformed
      */
     private boolean decodeRequestLine() throws InvalidRequestException {
         // Request-Line (GET / HTTP/1.1)
         Pattern requestLinePattern = Pattern
-                .compile("^(?<method>GET)[ ](?<uri>[/][\\w]*)[ ]HTTP/1.1$");
+                .compile("^(?<method>GET)[ ](?<uri>[\\w/]*)[ ]HTTP/1.1$");
+        /* TODO: the above pattern is a quite crude approximation of a valid
+         * Request-Line. Specifically, URI matching is just non-white-space
+         * characters which is obviously wrong.
+         */
 
         StringBuilder requestLine = new StringBuilder();
         // read the first line until we run into \r\n
@@ -69,7 +76,7 @@ public class HandshakeDecoder extends Decoder {
                 // successful request line
                 Matcher m = requestLinePattern.matcher(requestLine.toString());
                 if (m.matches()) {
-                    System.out.println(requestLine.toString());
+                    log.finest(requestLine.toString());
                     String method = m.group("method");
                     String uri = m.group("uri");
                     wsRequest = new WebSocketHandshakeRequest(method, uri);
@@ -97,7 +104,7 @@ public class HandshakeDecoder extends Decoder {
             bufPos = readBuf.position();
 
             String line = Util.getCRLFLine(readBuf);
-            System.out.println(line);
+            log.finest(line);
             if (line == null) {
                 // we haven't found crlf on the line, let's fail now and
                 // read further
@@ -106,8 +113,7 @@ public class HandshakeDecoder extends Decoder {
             }
 
             if (line.trim().equals("")) {
-                // empty line - end of header
-                // success();
+                // second empty line - end of header
                 return true;
             }
 

@@ -5,22 +5,26 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import edu.baylor.aiolos.websocket.HandshakeDecoder;
 
-
+/**
+ * Main server thread for accepting new connections and handing them over to the
+ * handshake decoder.
+ */
 public class Server implements Runnable {
+    /**
+     * Default size of the buffer for incoming messages
+     */
     public static final int BUFF_SIZE = 65536;
-    public static final String logFile = "server.log";
-    public static final Level logLevel = Level.FINEST;
 
-    private int listenPort = 8080;
-    private IServerHandler serverHandler;
+    private int listenPort = 8080; // default port for listening
     
+    /**
+     * Handler that will get all the messages
+     */
+    private IServerHandler serverHandler;
 
     public Server(IServerHandler sh) {
         this(sh, 8080);
@@ -30,14 +34,13 @@ public class Server implements Runnable {
         this.serverHandler = serverHandler;
     }
 
-    
     @Override
     public void run() {
-        final Logger log = configureLogger();
+        final Logger log = Logger.getLogger("aiolos.server");
 
         try {
             final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel
-                    .open().bind(new InetSocketAddress(listenPort));
+                    .open().bind(new InetSocketAddress("127.0.0.2", listenPort));
 
             listener.accept(
                     null,
@@ -54,14 +57,16 @@ public class Server implements Runnable {
                             } catch (IOException ex) {
                                 ex.printStackTrace();
                             }
-                            
+
                             // accept next connection
                             listener.accept(attachment, this);
-                            
-                            ClientSession att = new ClientSession(serverHandler, channel);
+
+                            // and hand it over to the handshake decoder
+                            ClientSession att = new ClientSession(
+                                    serverHandler, channel);
                             HandshakeDecoder.handle(channel, att);
                         }
-                        
+
                         @Override
                         public void failed(Throwable exc,
                                 ClientSession attachment) {
@@ -83,22 +88,5 @@ public class Server implements Runnable {
         } catch (IOException e) {
             log.severe(e.getMessage());
         }
-    }
-
-    private static Logger configureLogger() {
-        Logger log = Logger.getLogger("aiolos.network");
-        FileHandler fh;
-
-        try {
-            // configures the logger with handler and formatter
-            fh = new FileHandler(logFile, true);
-            log.addHandler(fh);
-            log.setLevel(logLevel);
-            SimpleFormatter formatter = new SimpleFormatter();
-            fh.setFormatter(formatter);
-        } catch (SecurityException | IOException e) {
-            e.printStackTrace();
-        }
-        return log;
     }
 }

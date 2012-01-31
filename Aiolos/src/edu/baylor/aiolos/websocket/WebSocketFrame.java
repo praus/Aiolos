@@ -40,6 +40,11 @@ public class WebSocketFrame implements IWSMessage {
      * Type of the frame.
      */
     private OpCode opcode;
+    
+    /**
+     * Status code this frame will be carrying, if any.
+     */
+    private StatusCode statusCode;
 
     /**
      * Whether this frame's data are masked by maskingKey.
@@ -94,6 +99,27 @@ public class WebSocketFrame implements IWSMessage {
             return o;
         }
     }
+    
+    public enum StatusCode {
+        NormalClose(1000), ProtocolErrorClose(1002), MessageTooBig(1009);
+        // TODO: there are far more status codes defined:
+        // http://tools.ietf.org/html/rfc6455#section-7.4
+        
+        private final int statusCode;
+
+        StatusCode(int statusCode) {
+            this.statusCode = statusCode;
+        }
+
+        public int getStatusCodeNumber() {
+            return this.statusCode;
+        }
+
+        @Override
+        public String toString() {
+            return this.name();
+        }
+    }
 
     /**
      * Encodes contents of this frame into bytes stored in ByteBuffer
@@ -101,14 +127,16 @@ public class WebSocketFrame implements IWSMessage {
      * @return buffer with encoded data, ready for reading (flipped)
      */
     public ByteBuffer encode() {
-        encoded = ByteBuffer.allocate(64 + data.limit());
-        byte flags = 0b1000; // fin
+     // maximum length of the header if all fields are used
+        int maxHeaderLength = 14;
+        
+        encoded = ByteBuffer.allocate(maxHeaderLength + data.limit());
+        byte flags = 0b1000; // fin without extensions
         byte opcode = (byte) this.opcode.getOpCodeNumber();
         encoded.put((byte) (opcode | (flags << 4)));
 
         byte mask = 0;
-        int payloadLen = data.limit();
-        // short statusCode = 1000;
+        int payloadLen = data.remaining();
 
         int firstLen = payloadLen; // first length field
         byte[] extendedLen = new byte[0];
@@ -116,21 +144,52 @@ public class WebSocketFrame implements IWSMessage {
             // TODO: implement
             firstLen = 127;
             extendedLen = new byte[8];
+            throw new UnsupportedOperationException("Not implemented yet");
         } else if (payloadLen > 125) { // 16 bit field
             firstLen = 126;
             extendedLen = new byte[2];
             extendedLen[0] = (byte) ((payloadLen >> 8) & 0xFF);
             extendedLen[1] = (byte) (payloadLen & 0xFF);
         }
-        // System.out.format("0x%x",);
+        // include 2-byte basic header
         encoded.put((byte) ((mask << 7) | (firstLen)));
+        
+        // put extended len in case we are sending larger message
         encoded.put(extendedLen);
-        // buf.putShort(statusCode);
+        
+        // if this is a control frame, include a status code
+        if (statusCode != null) {
+            int sC = statusCode.getStatusCodeNumber();
+            encoded.putShort((short) (sC & 0xFFFF));
+        }
         encoded.put(data);
-        encoded.flip();
+        encoded.flip(); // prepare buffer for reading!
         return encoded;
     }
 
+    /**
+     * Creates a new control frame for closing the connection
+     * @return closing frame.
+     */
+    public static WebSocketFrame closeFrame() {
+        WebSocketFrame f = new WebSocketFrame(true, OpCode.ConnectionClose,
+                false, 0, null); 
+        f.setStatusCode(StatusCode.NormalClose);
+        return f;
+    }
+    
+    /**
+     * Creates a new control frame for closing the connection with protocol
+     * error. 
+     * @return closing frame
+     */
+    public static WebSocketFrame protocolErrorCloseFrame() {
+        WebSocketFrame f = new WebSocketFrame(true, OpCode.ConnectionClose,
+                false, 0, null);
+        f.setStatusCode(StatusCode.ProtocolErrorClose);
+        return f;
+    }
+    
     /**
      * Wrapper around constructor that allows to easily send a text message.
      * 
@@ -138,7 +197,7 @@ public class WebSocketFrame implements IWSMessage {
      *            text of the message
      * @return frame with message encoded as data in the frame
      */
-    public static WebSocketFrame createMessage(String message) {
+    public static WebSocketFrame message(String message) {
         ByteBuffer buf = ByteBuffer.allocate(message.length());
         buf.put(message.getBytes());
         buf.flip();
@@ -155,7 +214,7 @@ public class WebSocketFrame implements IWSMessage {
     public WebSocketFrame(ByteBuffer data) {
         this(true, OpCode.Text, false, data.remaining(), null, data);
     }
-
+    
     /**
      * Constructor without data, they are to be specified later or left blank
      * 
@@ -244,6 +303,14 @@ public class WebSocketFrame implements IWSMessage {
         this.opcode = opcode;
     }
 
+    public StatusCode getStatusCode() {
+        return statusCode;
+    }
+
+    public void setStatusCode(StatusCode statusCode) {
+        this.statusCode = statusCode;
+    }
+
     /**
      * Indicates whether this frame has Connection Close flag set and
      * therefore the endpoint receiving this frame must close connection.
@@ -317,6 +384,16 @@ public class WebSocketFrame implements IWSMessage {
 
     @Override
     public void setMessageType(WSMessageType type) {
+        switch (type) {
+            case TEXT:
+                this.setOpcode(OpCode.Text);
+                break;
+            case BINARY:
+                this.setOpcode(OpCode.Binary);
+                break;
+        }
     }
 
+    
+    
 }

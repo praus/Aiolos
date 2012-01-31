@@ -20,7 +20,6 @@ public abstract class Encoder implements
     public Encoder(AsynchronousSocketChannel channel, ClientSession attachment){
         this.channel = channel;
         this.attachment = attachment;
-        // TODO: don't create the buffer each time, reuse it
         this.writeBuf = ByteBuffer.allocateDirect(Server.BUFF_SIZE);
     }
     

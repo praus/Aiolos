@@ -11,7 +11,7 @@ import edu.baylor.aiolos.IServerHandler;
 import edu.baylor.aiolos.Server;
 
 /**
- * Functionality common for all (two :-)) decoders.
+ * Functionality common to all (two :-)) decoders.
  */
 public abstract class Decoder implements
         CompletionHandler<Integer, ClientSession> {
@@ -20,7 +20,6 @@ public abstract class Decoder implements
     protected final AsynchronousSocketChannel channel;
     protected ClientSession attachment;
     protected final ByteBuffer readBuf;
-//    protected volatile boolean isReading;
 
     public Decoder(AsynchronousSocketChannel channel, ClientSession attachment) {
         this.channel = channel;
@@ -46,14 +45,12 @@ public abstract class Decoder implements
 
     @Override
     public void failed(Throwable exc, ClientSession attachment) {
-        exc.printStackTrace();
         log.warning(exc.getMessage());
         closeChannel();
     }
 
     protected void startReading() {
         readBuf.clear();
-//        isReading = true;
         channel.read(readBuf, attachment, this);
     }
 
@@ -68,6 +65,7 @@ public abstract class Decoder implements
 
     protected boolean notifyClient(WebSocketFrame frame) {
         IServerHandler sh = attachment.getServerHandler();
+        log.info("Received: "+frame);
         sh.getQueue().add(frame);
         return attachment.getServerHandler().receive(attachment);
     }

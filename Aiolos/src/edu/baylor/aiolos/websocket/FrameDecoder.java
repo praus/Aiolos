@@ -25,7 +25,8 @@ public class FrameDecoder extends Decoder {
     /**
      * Current decoder state
      */
-    private DecoderState state = DecoderState.HEADER; // decoding starts with header
+    private DecoderState state = DecoderState.HEADER; // decoding starts with
+                                                      // header
 
     /**
      * If the buffer is too small to fit in entire frame data, we don't want to
@@ -42,6 +43,8 @@ public class FrameDecoder extends Decoder {
     @Override
     public void completed(Integer result, ClientSession attachment) {
         super.completed(result, attachment);
+
+        readBuf.flip(); // we're going to read => flip the buffer
 
         try {
             switch (state) {
@@ -62,20 +65,28 @@ public class FrameDecoder extends Decoder {
                         dataAlreadyRead = 0;
                         cont = notifyClient(frame);
                     }
+                    readBuf.compact();
                     if (cont) {
-                        readBuf.compact();
+                        // readBuf.limit(readBuf.capacity());
                         channel.read(readBuf, attachment, this);
                     }
                     break;
             }
         } catch (InvalidRequestException e) {
-            e.printStackTrace();
+            invalidRequest(e);
         }
     }
-    
+
+    private void invalidRequest(Throwable exc) {
+        WebSocketFrame closeFrame = WebSocketFrame.protocolErrorCloseFrame();
+        channel.write(closeFrame.encode(), attachment, new CloseHandler(
+                channel, attachment));
+    }
+
     /**
      * Responsible for decoding header and creating object representation of
-     * the frame. 
+     * the frame.
+     * 
      * @return true if this decoder finished its job
      * @throws InvalidRequestException
      */
@@ -85,7 +96,6 @@ public class FrameDecoder extends Decoder {
          * If that happens, we need to return and reset position in readBuffer
          * to the last read we actually consumed. */
 
-        readBuf.flip(); // we're going to read => flip the buffer
         byte[] fhdr = new byte[2]; // fixed 2-byte header
         if (!Util.getBytes(readBuf, fhdr))
             return false;
@@ -118,9 +128,11 @@ public class FrameDecoder extends Decoder {
         } else if (payloadLength == 127) {
             /* Following 8 bytes interpreted as a 64-bit unsigned integer (the
              * most significant bit MUST be 0) are the payload length. */
-            byte[] realLen = new byte[8];
-            if (!Util.getBytes(readBuf, realLen))
-                return false;
+            throw new UnsupportedOperationException(
+                    "Payloads larger than 2^16 bits are not currently supported");
+            // byte[] realLen = new byte[8];
+            // if (!Util.getBytes(readBuf, realLen))
+            // return false;
             // TODO: not implemented yet
         }
 
@@ -136,7 +148,8 @@ public class FrameDecoder extends Decoder {
 
         if (rsv) {
             // fail, we don't support any extensions
-            throw new UnsupportedWebSocketExtensionException("");
+            throw new UnsupportedWebSocketExtensionException(
+                    "Extensions are not supported");
         }
 
         // we've all we need to construct a new frame!
@@ -148,9 +161,7 @@ public class FrameDecoder extends Decoder {
         ByteBuffer data = frame.getDataAsByteBuffer();
         byte[] maskingKey = frame.getMaskingKey();
 
-        log.info("Starting from: " + (dataAlreadyRead));
-
-        for (int i = 0; i < frame.getPayloadLength() - dataAlreadyRead; i++) {
+        for (int i = dataAlreadyRead; i < frame.getPayloadLength(); i++) {
             if (readBuf.hasRemaining()) {
                 byte masked = readBuf.get();
                 byte unmasked = (byte) (masked ^ maskingKey[i % 4]);
@@ -158,16 +169,10 @@ public class FrameDecoder extends Decoder {
                 data.put(unmasked);
             } else {
                 // not enough enough data, return and wait for next batch
-                dataAlreadyRead += i - (i % 4);
-                //log.info("Already read: " + dataAlreadyRead);
-                readBuf.position(readBuf.position() - (i % 4));
-                //log.info("readBuf pos: " + readBuf.position());
-                readBuf.compact();
+                dataAlreadyRead = i;
                 return false;
             }
         }
-        log.info("readBuf pos: " + readBuf.position());
-
         // we've read all the data specified in the header
         data.flip();
         return true;
