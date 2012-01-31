@@ -11,6 +11,11 @@ import java.util.logging.SimpleFormatter;
 
 import edu.baylor.aiolos.websocket.WebSocketFrame;
 
+/**
+ * WebSocket server - basic implementation
+ * @author Petr Praus
+ * This is a main class that creates server handler and the server itself. 
+ */
 public class Aiolos {
     /**
      * Server log file

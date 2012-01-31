@@ -1,12 +1,16 @@
 package edu.baylor.aiolos;
 
+import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 
 import edu.baylor.aiolos.websocket.FrameDecoder;
 import edu.baylor.aiolos.websocket.FrameEncoder;
 import edu.baylor.aiolos.websocket.WebSocketHandshakeRequest;
+import edu.baylor.websocket.IWSMessage;
+import edu.baylor.websocket.IWebSocket;
+import edu.baylor.websocket.WSException;
 
-public class ClientSession {
+public class ClientSession implements IWebSocket {
     private WebSocketHandshakeRequest handshakeRequest;
 
     /**
@@ -72,6 +76,41 @@ public class ClientSession {
 
     public void setChannel(AsynchronousSocketChannel channel) {
         this.channel = channel;
+    }
+
+    // CSI 5321 interface implementation
+    /*
+     * The supplied interface unfortunately fits very poorly to the asynchronous
+     * nature of this application.
+     * This functionality is rather basic and not actually used in the code.
+     */
+    
+    @Override
+    public IWSMessage receiveMessage() throws WSException {
+        return null;
+    }
+
+    @Override
+    public void sendMessage(IWSMessage msg) throws WSException {
+    }
+
+    @Override
+    public void closeConnection() throws WSException {
+        try {
+            channel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean isClosed() {
+        return !channel.isOpen();
+    }
+
+    @Override
+    public boolean hasNextMessage() {
+        return false;
     }
 
 }
