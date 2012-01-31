@@ -1,14 +1,14 @@
 package edu.baylor.aiolos.websocket;
 
 import java.nio.channels.AsynchronousSocketChannel;
-import java.util.logging.Logger;
 
 import edu.baylor.aiolos.ClientSession;
 
+/**
+ * This handler prepares a response to client's handshake.
+ */
 public class HandshakeResponder extends Encoder {
 
-    public static final Logger log = Logger.getLogger("aiolos.networking");
-    
     public static void create(ClientSession attachment,
             AsynchronousSocketChannel channel) {
         HandshakeResponder r = new HandshakeResponder(attachment, channel);
@@ -28,13 +28,9 @@ public class HandshakeResponder extends Encoder {
             channel.write(writeBuf, attachment, this);
         } else {
             // request is somehow malformed, respond with 400, bad request
-            invalidRequest();
+            channel.write(Util.prepareBadRequest(), attachment, new CloseHandler(
+                    channel, attachment));
         }
-    }
-    
-    private void invalidRequest() {
-        channel.write(Util.prepareBadRequest(), attachment, new CloseHandler(
-                channel, attachment));
     }
     
     public HandshakeResponder(ClientSession attachment,
@@ -50,8 +46,8 @@ public class HandshakeResponder extends Encoder {
         if (writeBuf.hasRemaining()) {
             channel.write(writeBuf, attachment, this);
         } else {
-            // connection is established and we'll hand control to the
-            // frame handler
+            // connection is established, our entire response was written
+            // and we'll hand control to the frame handler
             FrameDecoder.handle(channel, attachment);
         }
     }
