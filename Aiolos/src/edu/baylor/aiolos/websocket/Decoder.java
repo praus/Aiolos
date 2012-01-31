@@ -45,7 +45,9 @@ public abstract class Decoder implements
 
     @Override
     public void failed(Throwable exc, ClientSession attachment) {
-        log.warning(exc.getMessage());
+        if (exc.getMessage() != null) {
+            log.warning(exc.getMessage());
+        }
         closeChannel();
     }
 
@@ -59,7 +61,9 @@ public abstract class Decoder implements
             log.info("Disconnecting client " + channel.getRemoteAddress());
             channel.close();
         } catch (IOException e) {
-            log.warning(e.getMessage());
+            if (e.getMessage() != null) {
+                log.warning(e.getMessage());
+            }
         }
     }
 

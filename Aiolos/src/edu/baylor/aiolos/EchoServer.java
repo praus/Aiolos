@@ -44,11 +44,10 @@ public class EchoServer implements IServerHandler {
             byte[] d = new byte[data.limit()];
             data.get(d);
             String msg = new String(d);
-            log.log(Level.INFO, "Echo: {0}", msg);
-            log.finest("Test finest");
+            log.log(Level.INFO, "Echoing: {0}", msg);
 
             WebSocketFrame respFrame = WebSocketFrame.message(msg);
-            log.log(Level.INFO, "Echo frame: {0}", respFrame);
+            log.log(Level.FINE, "Echo frame: {0}", respFrame);
             channel.write(respFrame.encode(), attachment, new FrameEncoder(
                     channel, attachment));
 

@@ -25,7 +25,7 @@ public class HandshakeDecoder extends Decoder {
     @Override
     public void completed(Integer result, ClientSession attachment) {
         super.completed(result, attachment);
-        
+
         try {
             switch (state) {
                 case REQUESTLINE:
@@ -47,14 +47,21 @@ public class HandshakeDecoder extends Decoder {
                     break;
             }
         } catch (InvalidRequestException e) {
-            e.printStackTrace();
+            invalidRequest();
         }
+    }
+
+    private void invalidRequest() {
+        channel.write(Util.prepareBadRequest(), attachment, new CloseHandler(
+                channel, attachment));
     }
 
     /**
      * Decodes the initial request line
+     * 
      * @return true if finished with decoding request line and the line is OK
-     * @throws InvalidRequestException if the request line is somehow malformed
+     * @throws InvalidRequestException
+     *             if the request line is somehow malformed
      */
     private boolean decodeRequestLine() throws InvalidRequestException {
         // Request-Line (GET / HTTP/1.1)
@@ -62,8 +69,7 @@ public class HandshakeDecoder extends Decoder {
                 .compile("^(?<method>GET)[ ](?<uri>[\\w/]*)[ ]HTTP/1.1$");
         /* TODO: the above pattern is a quite crude approximation of a valid
          * Request-Line. Specifically, URI matching is just non-white-space
-         * characters which is obviously wrong.
-         */
+         * characters which is obviously wrong. */
 
         StringBuilder requestLine = new StringBuilder();
         // read the first line until we run into \r\n

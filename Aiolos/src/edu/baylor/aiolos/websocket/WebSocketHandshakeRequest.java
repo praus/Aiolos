@@ -13,7 +13,6 @@ import edu.baylor.aiolos.exceptions.ClientDoesNotSupportWebSocketException;
 import edu.baylor.aiolos.exceptions.InvalidMethodException;
 import edu.baylor.aiolos.exceptions.InvalidRequestException;
 import edu.baylor.aiolos.exceptions.InvalidWebSocketRequestException;
-import edu.baylor.aiolos.exceptions.WebSocketIllegalProtocolException;
 
 public class WebSocketHandshakeRequest {
     private String method;
@@ -37,7 +36,7 @@ public class WebSocketHandshakeRequest {
          * Sec-WebSocket-Key: 6+m3ssD7l08m+9f5bhCaOA==
          * Sec-WebSocket-Version: 13
          */
-        
+
         buf.flip();
         byte[] req = new byte[buf.limit()];
         buf.get(req);
@@ -77,18 +76,18 @@ public class WebSocketHandshakeRequest {
             String fieldValue = s[1].trim();
 
             switch (fieldName.toLowerCase()) {
-            case "connection":
-                wsRequest.setConnection(fieldValue);
-                break;
-            case "upgrade":
-                wsRequest.setUpgrade(fieldValue);
-                break;
-            case "sec-websocket-key":
-                wsRequest.setWsKey(fieldValue);
-                break;
-            case "sec-websocket-version":
-                wsRequest.setWsVersion(fieldValue);
-                break;
+                case "connection":
+                    wsRequest.setConnection(fieldValue);
+                    break;
+                case "upgrade":
+                    wsRequest.setUpgrade(fieldValue);
+                    break;
+                case "sec-websocket-key":
+                    wsRequest.setWsKey(fieldValue);
+                    break;
+                case "sec-websocket-version":
+                    wsRequest.setWsVersion(fieldValue);
+                    break;
             }
         }
 
@@ -104,33 +103,38 @@ public class WebSocketHandshakeRequest {
 
     public WebSocketHandshakeRequest() {
     }
-    
+
     public WebSocketHandshakeRequest(String method, String uri) {
         this.method = method;
         this.uri = URI.create(uri);
     }
-    
-    public void checkValid() throws InvalidRequestException {
+
+    public boolean isValid() {
         if (!this.isUpgraded()) {
             // fail, client does not support WebSocket
-            throw new ClientDoesNotSupportWebSocketException(
-                    "Client does not support WebSocket");
+            // throw new ClientDoesNotSupportWebSocketException(
+            //        "Client does not support WebSocket");
+            return false;
         }
 
-        if (this.getWsKey() == null
-                || this.getWsVersion() == null
+        if (this.getWsKey() == null || this.getWsVersion() == null
                 || !this.getConnection().toLowerCase().equals("upgrade")
                 || this.getHost() == null) {
-            throw new InvalidWebSocketRequestException(
-                    "Request is missing some mandatory header.");
+            // throw new InvalidWebSocketRequestException(
+            //        "Request is missing some mandatory header.");
+            return false;
         }
-        
+
         // http://tools.ietf.org/html/rfc6455#section-11.6
         // This server will accept only version 13
         if (this.getWsVersion() != "13") {
-            String errmsg = String.format("Version {0} is not supported", this.getWsVersion());
-            throw new WebSocketIllegalProtocolException(errmsg);
+            // String errmsg = String.format("Version {0} is not supported",
+            //        this.getWsVersion());
+            //throw new WebSocketIllegalProtocolException(errmsg);
+            return false;
         }
+        
+        return true;
     }
 
     public String getMethod() {
@@ -148,7 +152,7 @@ public class WebSocketHandshakeRequest {
     public void setUri(URI uri) {
         this.uri = uri;
     }
-    
+
     public void setUri(String uri) {
         this.uri = URI.create(uri);
     }

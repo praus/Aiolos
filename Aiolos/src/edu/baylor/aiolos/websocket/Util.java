@@ -37,4 +37,13 @@ public class Util {
         buf.position(pos);
         return r;
     }
+    
+    public static ByteBuffer prepareBadRequest() {
+        WebSocketHandshakeResponse badRequest = WebSocketHandshakeResponse.badRequest();
+        String response = badRequest.getResponse();
+        ByteBuffer buf = ByteBuffer.allocate(response.length());
+        buf.put(response.getBytes());
+        buf.flip();
+        return buf;
+    }
 }

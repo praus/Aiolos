@@ -18,17 +18,23 @@ public class HandshakeResponder extends Encoder {
     
     public void respond(WebSocketHandshakeRequest wsRequest) {
         // create the response
-        if (wsRequest != null) {
+        
+        if (wsRequest != null && wsRequest.isValid()) {
             WebSocketHandshakeResponse r =
                     new WebSocketHandshakeResponse(wsRequest.getWsKey());
             writeBuf.put(r.getResponse().getBytes());
             writeBuf.flip();
-            log.info("Response sent");
             
             channel.write(writeBuf, attachment, this);
         } else {
             // request is somehow malformed, respond with 400, bad request
+            invalidRequest();
         }
+    }
+    
+    private void invalidRequest() {
+        channel.write(Util.prepareBadRequest(), attachment, new CloseHandler(
+                channel, attachment));
     }
     
     public HandshakeResponder(ClientSession attachment,
