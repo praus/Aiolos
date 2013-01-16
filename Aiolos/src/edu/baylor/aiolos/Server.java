@@ -41,7 +41,7 @@ public class Server implements Runnable {
 
         try {
             final AsynchronousServerSocketChannel listener = AsynchronousServerSocketChannel
-                    .open().bind(new InetSocketAddress("127.0.0.2", listenPort));
+                    .open().bind(new InetSocketAddress(listenPort));
 
             listener.accept(
                     null,
